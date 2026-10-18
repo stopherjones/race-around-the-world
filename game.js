@@ -22,7 +22,7 @@ var E=[],ADJ={},seen={},ids=Object.keys(N),towns=ids.filter(function(i){return!N
 function G(i){var c=N[i].c;return c=="U"?1:c=="R"?3:2}
 function mk(a,b,m,lg,h,c,dp,ev){
  var k=(a<b?a+b:b+a)+m;if(seen[k])return;seen[k]=1;
- var v=h?[h,c]:val(a,b,m),j=E.length;E.push({a:a,b:b,m:m,h:v[0],c:v[1],lg:lg,dp:dp,ev:ev});
+ var v=h?[h,c]:val(a,b,m),j=E.length;E.push({a:a,b:b,m:m,h:v[0],c:v[1],lg:lg,dp:dp,ev:ev,hw:ev?ev*24:0});
  (ADJ[a]=ADJ[a]||[]).push(j);(ADJ[b]=ADJ[b]||[]).push(j)}
 function nn(a,f,k,mx){return towns.filter(function(b){return b!=a&&G(b)==G(a)&&f(b)&&hav(a,b)<=mx}).sort(function(x,y){return hav(a,x)-hav(a,y)}).slice(0,k)}
 ids.forEach(function(a){
@@ -35,7 +35,7 @@ towns.forEach(function(a){towns.forEach(function(b){
  if(same&&A.h&&B.h&&d<1000)mk(a,b,"hsr",1);
  if(same&&((A.s==3||B.s==3)&&d<320||A.s>1&&B.s>1&&d<650))mk(a,b,"bus",1);
  if(A.a&&B.a&&d>250&&d<1500)mk(a,b,"air",1)})});
-CROSSINGS.split("|").forEach(function(s){var p=s.split(" ");mk(p[0],p[1],p[2],p[2]=="ferry"?0:1,+p[3],+p[4],p[5]?+p[5]:null,p[6]?+p[6]:null)});
+CROSSINGS.split("|").forEach(function(s){var p=s.split(" ");mk(p[0],p[1],p[2],p[2]=="ferry"?0:1,+p[3],+p[4],p[5]?+p[5]:-1,p[6]?+p[6]:0)});
 
 function has(k){return S.cards.indexOf(k)>-1}
 function opts(all){
@@ -45,18 +45,29 @@ function opts(all){
   if((e.m=="ferry"||e.m=="air")&&has("prio"))h=Math.max(.5,Math.round((h-.8)*10)/10);
   return{to:e.a==S.loc?e.b:e.a,m:e.m,h:h,c:c,lg:e.lg,dp:e.dp,ev:e.ev}})
 }
+// Choose which long-distance links to show at this stop: toward, sideways, a diversion, and red herrings, with a spread of departure times.
+// The choice is seeded by the race, the place and the time, so refreshing the page or reloading a save shows the same list.
+function curateLong(all,lg){
+ if(lg.length<=5)return lg;
+ var seed=hsh(S.start+S.goal+S.loc+Math.floor(S.h*4)),cur=hav(S.loc,S.goal),tw=[],sd=[],aw=[],r=seed;
+ lg.forEach(function(i){var d=hav(all[i].to,S.goal);if(d<cur*.95)tw.push(i);else if(d>cur*1.05)aw.push(i);else sd.push(i)});
+ var pickN=function(arr,n,key){var s=arr.slice().sort(function(x,y){return key(all[x])-key(all[y])}),out=[];while(out.length<n&&s.length){r=(r*31+7)%1000;out.push(s.splice(r%Math.min(3,s.length),1)[0])}return out};
+ var target=Math.min(lg.length,5+seed%4),pick=[];
+ pick=pick.concat(pickN(tw,2,function(o){return o.h}));
+ pick=pick.concat(pickN(sd,2,function(o){return o.h}));
+ pick=pick.concat(pickN(lg.filter(function(i){return pick.indexOf(i)<0&&cultRating(all[i].to)>=3}),1,function(o){return o.h}));
+ pick=pick.concat(pickN(aw,2,function(o){return o.c}));
+ pick=pick.concat(pickN(lg.filter(function(i){return pick.indexOf(i)<0}),Math.max(0,target-pick.length),function(o){return o.h}));
+ pick=pick.slice(0,target);
+ var wait=function(i){return sched(all[i],S.loc,S.h).dep-S.h};
+ if(pick.length>1&&!pick.some(function(i){return wait(i)<=1.5})){var soon=lg.filter(function(i){return pick.indexOf(i)<0&&wait(i)<=1.5})[0];if(soon!==undefined)pick[pick.length-1]=soon}
+ if(pick.length>1&&!pick.some(function(i){return wait(i)>=3})){var late=lg.filter(function(i){return pick.indexOf(i)<0&&wait(i)>=3})[0];if(late!==undefined)pick[pick.length-1]=late}
+ return lg.filter(function(i){return pick.indexOf(i)>=0})
+}
 function vis(){
  var all=opts(),idx=all.map(function(_,i){return i}),loc=idx.filter(function(i){return!all[i].lg}),lg=idx.filter(function(i){return all[i].lg});
  if(S.rev[S.loc+S.term])return{show:loc.concat(lg),hid:0};
- if(N[S.loc].s>=3){
-  var sh=lg;
-  if(lg.length>8){
-   var pk={};
-   var top=function(f,n){lg.slice().sort(function(x,y){return f(all[x])-f(all[y])}).slice(0,n).forEach(function(i){pk[i]=1})};
-   top(function(o){return hav(o.to,S.goal)},4);top(function(o){return o.h},2);top(function(o){return o.c},2);
-   sh=lg.filter(function(i){return pk[i]})}
-  return{show:loc.concat(sh),hid:lg.length-sh.length}}
- return{show:loc,hid:lg.length}
+ var cl=curateLong(all,idx);return{show:cl,hid:idx.length-cl.length}
 }
 var WIN={tube:[5.5,23.5],bus:[8,22],rail:[7,22],ferry:[6,21],hsr:[6.5,21],air:[6,21],coach:[6,23]};
 function hsh(s){var x=0;for(var i=0;i<s.length;i++)x=(x*31+s.charCodeAt(i))%1000;return x}
@@ -65,6 +76,7 @@ var HW={tube:.12,bus:.6,rail:.8,hsr:1.5,ferry:2,air:4};
 function hdw(o,from){var b=o.lg&&o.m=="bus"?3:o.lg&&o.m=="rail"?2:HW[o.m],f=Math.min(3,.7+hav(from,o.to)/500);return b*f*(o.m=="ferry"?2:1)*[0,1.5,1,.7][N[from].s]}
 function nextDep(o,from,t){if(o.dp!=null){var evd=o.ev||1,pd=hsh(from+o.to)%evd,A=8+t,dy=Math.floor(A/24);for(var k=0;k<=evd*2+1;k++){var d=dy+k;if(d%evd==pd&&d*24+o.dp>=A-1e-9)return d*24+o.dp-8}}var H=hdw(o,from),ph=hsh(from+o.to+o.m)/1000*H,n=Math.ceil((8+t-ph)/H-1e-9);return ph+n*H-8}
 function sched(o,from,t){
+ if(o.hw>0&&o.dp>=0){var step=Math.max(24,o.hw),base=o.dp-8,dd=base+Math.max(0,Math.ceil((t-base)/step-1e-9))*step;if(dd<t-1e-9)dd+=step;var da=Math.floor((8+dd)/24)-Math.floor((8+t)/24);return{dep:dd,night:da>0&&dd-t>5?1:0,nn:Math.max(1,da),ns:0}}
  var d0=nextDep(o,from,t),tod=(8+d0)%24,day=Math.floor((8+d0)/24),w=WIN[o.m];
  if((o.m=="rail"||o.m=="bus")&&o.lg)w=[6,23];
  if(tod>=w[0]&&tod<=w[1])return{dep:d0,night:0};
@@ -127,9 +139,9 @@ function updateJourney(map){
  var key=S.start+S.goal+(S.over?"o":"")+(rt.length?"r":"");if(MJ.fit!=key){MJ.fit=key;fitJourney(map)}
 }
 function drawMap(){
- var box=document.getElementById("mapbox");if(!box||!S)return;
+ var box=document.getElementById("sharedmap");if(!box||!S)return;
  MJ.p=MJ.p||MAPX.init(box).catch(function(e){MJ.p=null;console.warn("Map failed",e);var pf=document.getElementById("planfail");if(pf)pf.hidden=false});
- MJ.p.then(function(map){var b=document.getElementById("mapbox");if(!map||!b||!S)return;if(S.phase!="lastmile")MAPX.setLabels(false);MAPX.attach(b);setupJourney(map);if(S.phase=="plan")planMap(map);else{planClean(map);updateJourney(map)}})
+ MJ.p.then(function(map){var b=document.getElementById("sharedmap");if(!map||!b||!S)return;if(S.phase!="lastmile")MAPX.setLabels(false);MAPX.attach(b);setupJourney(map);if(S.phase=="plan")planMap(map);else{planClean(map);updateJourney(map)}})
 }
 // ---- Planning phase: guess where the destination is on the unlabelled map; the error becomes time lost before you leave
 var PL={on:false,pin:null,truth:null,guess:null,fn:null},PLAN_KM_PER_H=150,PLAN_MAX_H=8,PLAN_RIVAL_KM=300;
@@ -147,8 +159,24 @@ function planClean(map){
  if(!PL.on)return;PL.on=false;map.off("click",PL.fn);if(PL.pin)PL.pin.remove();if(PL.truth)PL.truth.remove();PL.pin=PL.truth=null;PL.guess=null;
  if(map.getLayer("p-miss"))map.removeLayer("p-miss");if(map.getSource("p-miss"))map.removeSource("p-miss");map.setMinZoom(0)
 }
-function planPanel(){
- return"<div class='panel'><h2>Planning in "+(S.start=="lon"?"Trafalgar Square":esc(N[S.start].n))+"</h2><p class='big' style='font-size:1.5rem'>Where is "+esc(N[S.goal].n)+"?</p><p class='mute' style='margin:0 0 10px'>Tap the map to drop a pin. The further off you are, the more time you lose working out how to get there.</p><div id='mapbox' class='jmap'></div><div class='row' style='margin-top:10px'><button class='btn' id='planguess' onclick='planGuess()'"+(PL.guess&&!S.plan?"":" disabled")+">Lock in guess</button></div><div id='planres'>"+(S.plan?planResHtml():"")+"</div><div id='planfail' hidden><p class='mute'>The map couldn't load.</p><button class='btn alt' onclick='planDone(1)'>Skip planning</button></div></div>"
+function planPanel(){return planPanelBase()+boardHtml()}
+// Destination board: the key services on each route type, fixed for the day, so you and the rival see the same options
+function legTxt(e,from,to){
+ var t=(MODE[e.m]||e.m)+" "+N[from].n+" to "+N[to].n;
+ if(e.m=="ferry"&&e.dp>=0){t+=", sails "+pad(Math.floor(e.dp))+":"+pad(Math.round((e.dp%1)*60))+(e.hw>24?", every "+Math.round(e.hw/24)+" days":", daily")}
+ return t
+}
+function boardHtml(){
+ if(!S||!S.opts||!S.opts.length||S.over)return"";
+ var rows=S.opts.map(function(o){
+  var legs=o.steps.map(function(s,i){return legTxt(E[s.j],o.names[i],o.names[i+1])});
+  var shown=legs.slice(0,4).map(function(t){return"<li>"+esc(t)+"</li>"}).join("")+(legs.length>4?"<li class='mute'>+"+(legs.length-4)+" more legs</li>":"");
+  return"<div class='panel'><h2>"+esc(o.label)+" route</h2><ul class='log'>"+shown+"</ul></div>"
+ }).join("");
+ return"<div class='panel'><h2>Destination board</h2><p class='mute'>Key services on each route to "+esc(N[S.goal].n)+". Timetables are fixed, so you and the rival face the same services.</p></div>"+rows
+}
+function planPanelBase(){
+ return"<div class='panel'><h2>Planning in "+(S.start=="lon"?"Trafalgar Square":esc(N[S.start].n))+"</h2><p class='big' style='font-size:1.5rem'>Where is "+esc(N[S.goal].n)+"?</p><p class='mute' style='margin:0 0 10px'>Tap the map to drop a pin. The further off you are, the more time you lose working out how to get there.</p><div class='row' style='margin-top:10px'><button class='btn' id='planguess' onclick='planGuess()'"+(PL.guess&&!S.plan?"":" disabled")+">Lock in guess</button></div><div id='planres'>"+(S.plan?planResHtml():"")+"</div><div id='planfail' hidden><p class='mute'>The map couldn't load.</p><button class='btn alt' onclick='planDone(1)'>Skip planning</button></div></div>"
 }
 function planResHtml(){var p=S.plan;return"<p>You were "+Math.round(p.km)+" km off: "+mins(p.lost)+" lost. The rival was "+Math.round(p.rkm)+" km off: "+mins(p.rl)+" lost.</p><button class='btn' onclick='planDone()'>Start travelling</button>"}
 function planGuess(){
@@ -215,7 +243,7 @@ function journalHtml(){
  ll=lm?(lm.skipped?"skipped":mins(lm.lost)):"\u2013",lrl=lm?(lm.skipped?"skipped":mins(lm.rivalLost)):"\u2013";
  return"<div class='panel jrnl-wrap'><h2>Journal</h2><div class='jrnl'>"+jcol(S.path,S.modes,S.times,S.nights,"You")+jcol(S.bot.names,S.bot.modes,S.bot.times,S.bot.nights,"Rival")+"</div><div class='jsum'>"+jrow("Planning",pl,prl)+jrow("Last mile",ll,lrl)+jrow("Total time",mins(S.h),mins(S.bot.h))+jrow("Spend","\u00a3"+Math.round(S.spent),"\u00a3"+Math.round(S.bot.c))+"</div></div>"
 }
-function mapPanel(){return"<div class='panel'><h2>Map</h2><div id='mapbox' class='jmap'></div><div class='zc'><button onclick='mfit()'>Fit journey</button></div></div>"}
+function mapPanel(){return"<div class='panel'><h2>Map</h2><div class='zc'><button onclick='mfit()'>Fit journey</button></div></div>"}
 function mfit(){if(MJ.p)MJ.p.then(function(map){if(map&&S)fitJourney(map)})}
 var TN={r:"train station",b:"bus station",f:"ferry terminal",a:"airport"},TV={r:"Train station",b:"Bus station",f:"Ferry terminal",a:"Airport"};
 function grp(m){return{tube:"r",rail:"r",hsr:"r",bus:"b",coach:"b",ferry:"f",air:"a"}[m]}
@@ -258,7 +286,7 @@ function newRace(a,b,air,evn,lm){
  S.term=terms(a)[0];S.arr=0;var B=camp.money+INCOME,p=plan(0,B),t=0;
  while(!p&&t++<4){B=Math.round(B*1.5);p=plan(0,B)}
  if(!p){S=null;return false}
- S.budget=B;S.cash=B;S.opt=run(p,false);S.bot=run(plan(NOISE,B)||p,true);if(S.phase=="routes")S.opts=routeOptions(S.budget);return true
+ S.budget=B;S.cash=B;S.opt=run(p,false);S.bot=run(plan(NOISE,B)||p,true);S.opts=routeOptions(S.budget);return true
 }
 function load(){try{var r=localStorage.getItem(KEY);if(r){var o=JSON.parse(r);if(o&&o.loc&&o.bot&&N[o.start]&&N[o.goal]){if(!o.camp)o.camp={money:0,legs:1,start:0,log:[]};if(!o.setup)o.setup={air:false,evn:false,lm:{on:true,clue:"off",level:"mixed",plan:true}};S=o}}}catch(e){}}
 function save(){try{if(S)localStorage.setItem(KEY,JSON.stringify(S));else localStorage.removeItem(KEY)}catch(e){}}
@@ -266,6 +294,7 @@ function say(t){S.log.push(t);if(S.log.length>40)S.log.shift()}
 function drop(k){var i=S.cards.indexOf(k);if(i>-1)S.cards.splice(i,1)}
 function pad(n){return(n<10?"0":"")+n}
 function absH(h){return(S&&S.camp?S.camp.start:0)+h}
+function dayAhead(dep){var da=Math.floor((8+dep)/24)-Math.floor((8+S.h)/24);return da>0?(da==1?" tomorrow":" in "+da+" days"):""}
 function clk(h){var t=480+Math.round(absH(h)*60),d=Math.floor(t/1440),m=t%1440;return"Day "+(d+1)+", "+pad(Math.floor(m/60))+":"+pad(m%60)}
 
 function go(i){
@@ -359,6 +388,7 @@ function render(msg){
  h+="<p class='sub'>Score is hours plus \u00a31 per three minutes (\u00a320 = 1 h). Lower wins.</p>";
  var st=status();
  h+="<div class='hdr'><div class='r1'><span><b>"+clk(S.h)+"</b></span><span><b>\u00a3"+S.cash+"</b> of \u00a3"+S.budget+"</span><span class='st'><span aria-hidden='true'>"+st[0]+"</span> "+st[1]+"</span></div><div class='r2'><div><small>From</small>"+(S.start=="lon"?"Trafalgar Square":N[S.start].n)+"</div><div class='cur'><small>Now</small>"+N[S.loc].n+"</div><div><small>To "+(S.phase=="plan"&&!S.plan||S.phase=="routes"&&!S.route?"?":arrow(S.loc,S.goal))+"</small>"+N[S.goal].n+"</div></div><div class='rv'>Rival "+rivalAt()+"</div></div>";
+ h+="<div id='sharedmap' class='smap'></div>";
  if(S.over){
   var you={names:S.path,modes:S.modes,nights:S.nights,h:S.h,c:S.spent,score:S.h+S.spent/VT},m=S.over=="broke"?"Stranded: you can't afford any onward fare from "+N[S.loc].n+".":(you.score<S.bot.score?"You beat the rival.":"The rival wins this one.");
   h+="<div class='panel'><p class='big'>"+m+"</p>"+(S.over=="done"||S.path.length>1?journalHtml():"")+res("Best planned route",S.opt)+"<p class='mute'>Leg "+S.camp.legs+" complete. You carry \u00a3"+Math.max(0,Math.round(S.cash))+" into the next leg, plus \u00a3"+INCOME+" income.</p>"+restHtml()+campLogHtml()+"<div class='row'><button class='btn' onclick='nextLeg()'>Next leg</button><button class='btn alt' onclick='if(confirm(\"End your campaign? Saved progress will be cleared.\"))reset()'>End campaign</button></div></div>"+mapPanel()
@@ -377,7 +407,7 @@ function render(msg){
    v.show.forEach(function(i){
     var o=all[i],sc=sched(o,S.loc,S.h);
     if(o.m!=last){h+="<h3>"+GRP[o.m]+"</h3>";last=o.m}
-    h+="<button class='opt' onclick='go("+i+")'"+(o.c>S.cash?" disabled":"")+"><div class='to'>"+N[o.to].n+"<small>heads "+dir(S.loc,o.to)+", departs "+tm(sc.dep)+(sc.night?" tomorrow":"")+(sc.ns?", night service":"")+(S.path.indexOf(o.to)>-1?", already visited":"")+"</small></div><span>"+o.h+" h</span><span>\u00a3"+o.c+"</span></button>"});
+    h+="<button class='opt' onclick='go("+i+")'"+(o.c>S.cash?" disabled":"")+"><div class='to'>"+N[o.to].n+"<small>heads "+dir(S.loc,o.to)+", departs "+tm(sc.dep)+dayAhead(sc.dep)+(sc.ns?", night service":"")+(S.path.indexOf(o.to)>-1?", already visited":"")+"</small></div><span>"+o.h+" h</span><span>\u00a3"+o.c+"</span></button>"});
    if(v.hid>0)h+="<p class='hand'>"+v.hid+" more long-distance links are not shown here.</p><button class='btn alt' onclick='look()'>Look for routes (0.3 h)</button>";h+=xferHtml();
    h+="</div>"}
  }

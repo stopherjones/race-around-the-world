@@ -81,10 +81,10 @@ function buy(k){
  }
  function setMode(m){mode=m;if(root)root.querySelectorAll("[data-mode]").forEach(function(x){x.classList.toggle("on",x.dataset.mode==m)});MAPX.setMode(m)}
  function onClick(e){if(!R||R.done)return;pin=e.lngLat;if(pinMk)pinMk.remove();pinMk=new maplibregl.Marker({color:"#1b6f63"}).setLngLat(pin).addTo(map);$("guess").disabled=false}
- function ensureMap(){return MAPX.init($("map")).then(function(m){map=m;built=MAPX.built();MAPX.attach($("map"));map.on("click",onClick);map.setMinZoom(10.5)})}
+ function ensureMap(){var sb=document.getElementById("sharedmap");return MAPX.init(sb).then(function(m){map=m;built=MAPX.built();MAPX.attach(sb);map.on("click",onClick);map.setMinZoom(10.5)})}
  function build(){
   root=document.createElement("div");root.id="lmroot";
-  root.innerHTML="<div id='clue'></div><div id='mapwrap' hidden><div class='row tight'><button class='btn alt on' data-mode='streets'>Streets</button><button class='btn alt' data-mode='sat'>Satellite</button><button class='btn alt' data-mode='hybrid'>Hybrid</button></div><div class='lmmap' id='map'></div><div class='row tight' id='clues' hidden style='margin-top:10px'></div><p class='mute' id='cluecost' hidden></p><div class='row'><button class='btn' id='guess' disabled>Lock in guess</button><button class='btn alt' id='hintbtn'>Ask a local (0.25 h)</button></div><div class='hint' id='hint' hidden></div></div><div id='result' hidden></div>";
+  root.innerHTML="<div id='clue'></div><div id='mapwrap' hidden><div class='row tight'><button class='btn alt on' data-mode='streets'>Streets</button><button class='btn alt' data-mode='sat'>Satellite</button><button class='btn alt' data-mode='hybrid'>Hybrid</button></div><div class='row tight' id='clues' hidden style='margin-top:10px'></div><p class='mute' id='cluecost' hidden></p><div class='row'><button class='btn' id='guess' disabled>Lock in guess</button><button class='btn alt' id='hintbtn'>Ask a local (0.25 h)</button></div><div class='hint' id='hint' hidden></div></div><div id='result' hidden></div>";
   root.querySelectorAll("[data-mode]").forEach(function(b){b.onclick=function(){setMode(b.dataset.mode)}});
   $("guess").onclick=guess;$("hintbtn").onclick=hint
  }
