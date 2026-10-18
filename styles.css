@@ -73,3 +73,22 @@ label{display:block;font-size:.9rem;color:var(--mute);margin-bottom:4px}
 #lm h2{margin-top:0}
 
 .jmap{height:56vh;min-height:320px;border-radius:8px;border:1px solid var(--line);overflow:hidden}
+
+.pz{position:relative}.pzbox{overflow:hidden;border-radius:8px;background:var(--bg);touch-action:none;cursor:grab}
+.pzbox img.lmphoto{transform-origin:center center;transition:transform .15s ease-out;width:100%;max-height:50vh;object-fit:contain;display:block}
+.pz .zc{display:flex;gap:8px;margin-top:8px}
+.pz .zc button{background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 14px;font:inherit;cursor:pointer}
+
+.jrnl{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.jcol h3{font:600 1rem Georgia,serif;margin:0 0 6px}
+.jcol ol{list-style:none;margin:0;padding:0;border-left:2px solid var(--line)}
+.jcol li{position:relative;padding:4px 0 8px 12px;font-size:.92rem}
+.jcol li::before{content:"";position:absolute;left:-6px;top:9px;width:9px;height:9px;border-radius:50%;background:var(--acc)}
+.jcol li.jstart::before{background:var(--ink)}
+.jcol li span{display:block}
+.jcol li small{display:block;color:var(--mute);font-size:.78rem}
+.jsum{margin-top:12px;border-top:1px solid var(--line);padding-top:8px}
+.jr{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:.9rem;padding:3px 0}
+.jr span{color:var(--mute)}
+.jr b{text-align:right}
+.jr:first-child{color:var(--mute);font-size:.8rem}

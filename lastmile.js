@@ -5,7 +5,8 @@ var LM=(function(){
 var WALK=4500,HINT_H=.25,RIVAL_MEDIAN=700;
 function hav(a,b,c,d){var r=Math.PI/180,x=(d-b)*r*Math.cos((a+c)/2*r),y=(c-a)*r;return Math.sqrt(x*x+y*y)*6371000}
 function bearingWord(a,b,c,d){var r=Math.PI/180,x=(d-b)*Math.cos((a+c)/2*r),y=c-a,g=(Math.atan2(x,y)/r+360)%360;return["north","north-east","east","south-east","south","south-west","west","north-west"][Math.round(g/45)%8]}
-function lostHours(m){return m/WALK}
+// Delay on the last mile: no delay within 100 m, then one minute for every 10 m beyond that
+function lostHours(m){return Math.max(0,m-100)/10/60}
 function tier(m){return m<50?"Spot on":m<250?"Nearly there":m<1000?"Lost for a while":"Wandered half the city"}
 function randn(){var u=1-Math.random(),v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
 function rivalError(){return Math.exp(Math.log(RIVAL_MEDIAN)+randn())}
@@ -93,14 +94,37 @@ function buy(k){
   $("skip").onclick=function(){finish({skipped:true,lost:0,rivalLost:0})}
  }
  function finish(r){var f=cb;cb=null;if(f)f(r)}
- function start(cfg,onDone){
+ // Zoom and pan the photo inside its own box, like the map does
+function bindPhoto(){
+ var im=document.querySelector("#clue img.lmphoto");if(!im)return;
+ var box=im.parentNode,s=1,x=0,y=0,drag=null,ptrs={},pinch=null;
+ function apply(){s=Math.max(1,Math.min(4,s));if(s==1){x=0;y=0}im.style.transform="translate("+x+"px,"+y+"px) scale("+s+")"}
+ function gap(){var a=Object.keys(ptrs).map(function(k){return ptrs[k]});return Math.hypot(a[0].clientX-a[1].clientX,a[0].clientY-a[1].clientY)}
+ document.getElementById("pzin").onclick=function(){s*=1.5;apply()};
+ document.getElementById("pzout").onclick=function(){s/=1.5;apply()};
+ document.getElementById("pzreset").onclick=function(){s=1;apply()};
+ box.onpointerdown=function(e){
+  ptrs[e.pointerId]=e;if(box.setPointerCapture)box.setPointerCapture(e.pointerId);
+  if(Object.keys(ptrs).length==2){pinch={d:gap(),s:s};drag=null}
+  else if(s>1){drag={x:e.clientX-x,y:e.clientY-y}}
+ };
+ box.onpointermove=function(e){
+  if(!ptrs[e.pointerId])return;ptrs[e.pointerId]=e;
+  if(pinch&&Object.keys(ptrs).length==2){s=pinch.s*gap()/pinch.d;apply()}
+  else if(drag&&s>1){x=e.clientX-drag.x;y=e.clientY-drag.y;apply()}
+ };
+ function end(e){delete ptrs[e.pointerId];if(Object.keys(ptrs).length<2)pinch=null;if(!Object.keys(ptrs).length)drag=null}
+ box.onpointerup=end;box.onpointercancel=end;box.onpointerleave=end;
+ apply()
+}
+function start(cfg,onDone){
   reset();build();cb=onDone;
   R={cfg:cfg,done:false,hinted:false,bought:{},cost:0,clueMode:cfg.clueMode||"pay"};
   $("clue").innerHTML="<h2>Finding the spot in "+esc(cfg.name)+"...</h2>";
   MAPX.load().then(function(){return cfg.landmark?getNamed(cfg):getLandmark([cfg.name,"",cfg.lat,cfg.lon],cfg.level||"mixed")}).then(function(lm){
    R.lm=lm;
-   $("clue").innerHTML="<h2>Where was this photo taken"+(cfg.landmark?"":" in "+esc(cfg.name))+"?</h2><img class='lmphoto' alt='A landmark near "+esc(cfg.name)+"' src='"+esc(lm.src)+"'><p class='credit'>Photo from Wikipedia (Wikimedia Commons). Credit and licence are on the article, linked after you guess.</p>";
-   $("mapwrap").hidden=false;
+   $("clue").innerHTML="<h2>Where was this photo taken"+(cfg.landmark?"":" in "+esc(cfg.name))+"?</h2><div class='pz'><div class='pzbox'><img class='lmphoto' alt='A landmark near "+esc(cfg.name)+"' src='"+esc(lm.src)+"'></div><div class='zc'><button type='button' id='pzin'>+</button><button type='button' id='pzout'>\u2212</button><button type='button' id='pzreset'>Reset</button></div></div><p class='credit'>Photo from Wikipedia (Wikimedia Commons). Credit and licence are on the article, linked after you guess.</p>";
+   $("mapwrap").hidden=false;bindPhoto();
    return ensureMap()
   }).then(function(){
    var a=Math.random()*2*Math.PI,off=800+Math.random()*1500,c=[cfg.lon+Math.sin(a)*off/(111000*Math.cos(cfg.lat*Math.PI/180)),cfg.lat+Math.cos(a)*off/111000];
