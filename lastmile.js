@@ -1,6 +1,6 @@
 // Last-mile challenge: a landmark photo; pin where it was taken. Lazy-loads MapLibre. Photos from Wikipedia, tiles per config.js.
 var LM=(function(){
- var ML="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/",root=null,R=null,map=null,built=null,pinMk=null,truthMk=null,pin=null,mode="streets",cb=null,loadP=null;
+ var root=null,R=null,map=null,built=null,pinMk=null,truthMk=null,pin=null,mode="streets",cb=null;
  function $(id){return root.querySelector("#"+id)}
 var WALK=4500,HINT_H=.25,RIVAL_MEDIAN=700;
 function hav(a,b,c,d){var r=Math.PI/180,x=(d-b)*r*Math.cos((a+c)/2*r),y=(c-a)*r;return Math.sqrt(x*x+y*y)*6371000}
@@ -32,25 +32,6 @@ function pickLandmark(list,level){
 function getLandmark(city,level){
  return fetch(wikiQuery(city[2],city[3],10000)).then(function(r){return r.json()}).then(function(j){
   var l=parseLandmarks(j);if(l.length<5)throw new Error("Too few landmarks");var c=pickLandmark(l,level);c.all=l;return c})
-}
-
-// ---- Map style: fetch the OpenFreeMap style, strip all labels except road names, add satellite and a hybrid label set
-function buildStyle(st){
- var out=JSON.parse(JSON.stringify(st)),names=[],base=[];
- out.layers=out.layers.filter(function(l){
-  if(l.type=="background")return true;
-  if(l.type=="symbol"){if(l["source-layer"]=="transportation_name"){names.push(l.id);return true}return false}
-  base.push(l.id);return true});
- out.sources=out.sources||{};
- out.sources.sat={type:"raster",tiles:CONFIG.SAT.tiles,tileSize:256,maxzoom:CONFIG.SAT.maxzoom,attribution:CONFIG.SAT.attribution};
- var bgIdx=out.layers.findIndex(function(l){return l.type=="background"});
- out.layers.splice(bgIdx+1,0,{id:"sat",type:"raster",source:"sat",layout:{visibility:"none"}});
- var hyb=[];
- out.layers.filter(function(l){return names.indexOf(l.id)>-1}).forEach(function(l){
-  var c=JSON.parse(JSON.stringify(l));c.id=l.id+"-hyb";c.layout=c.layout||{};c.layout.visibility="none";
-  c.paint=Object.assign({},c.paint,{"text-color":"#ffffff","text-halo-color":"rgba(0,0,0,0.8)","text-halo-width":1.6});
-  out.layers.push(c);hyb.push(c.id)});
- return{style:out,base:base,names:names,hyb:hyb,vsrc:Object.keys(out.sources).filter(function(k){return out.sources[k].type=="vector"})[0]}
 }
 
 // ---- Clue layers: icon-only POI categories (no names) and a dots layer of nearby notable places, bought with time
@@ -97,30 +78,9 @@ function buy(k){
    var c=p.coordinates&&p.coordinates[0],lm={title:p.title,lat:c?c.lat:cfg.lat,lon:c?c.lon:cfg.lon,src:p.thumbnail.source,views:0,desc:p.description||"",all:a[1]};
    if(!lm.all.some(function(x){return x.title==lm.title}))lm.all=lm.all.concat([lm]);return lm})
  }
- function lazy(){
-  if(window.maplibregl)return Promise.resolve();
-  if(loadP)return loadP;
-  loadP=new Promise(function(res,rej){var l=document.createElement("link");l.rel="stylesheet";l.href=ML+"maplibre-gl.css";document.head.appendChild(l);var s=document.createElement("script");s.src=ML+"maplibre-gl.js";s.onload=res;s.onerror=function(){loadP=null;rej(new Error("MapLibre failed to load"))};document.head.appendChild(s)});
-  return loadP
- }
- function vis(id,on){if(map.getLayer(id))map.setLayoutProperty(id,"visibility",on?"visible":"none")}
- function setMode(m){
-  mode=m;if(root)root.querySelectorAll("[data-mode]").forEach(function(b){b.classList.toggle("on",b.dataset.mode==m)});
-  if(!map||!built||!map.isStyleLoaded())return;
-  vis("sat",m!="streets");
-  built.base.forEach(function(id){vis(id,m=="streets")});
-  built.names.forEach(function(id){vis(id,m=="streets")});
-  built.hyb.forEach(function(id){vis(id,m=="hybrid")})
- }
- function ensureMap(){
-  return fetch(CONFIG.STYLE_URL).then(function(r){return r.json()}).then(function(st){
-   built=buildStyle(st);
-   map=new maplibregl.Map({container:$("map"),style:built.style,center:[R.cfg.lon,R.cfg.lat],zoom:12.5,minZoom:10.5,maxZoom:19.5,attributionControl:{compact:true}});
-   map.addControl(new maplibregl.NavigationControl({showCompass:false}),"top-right");
-   map.on("click",function(e){if(!R||R.done)return;pin=e.lngLat;if(pinMk)pinMk.remove();pinMk=new maplibregl.Marker({color:"#1b6f63"}).setLngLat(pin).addTo(map);$("guess").disabled=false});
-   return new Promise(function(res){map.on("load",function(){setMode(mode);res()})})
-  })
- }
+ function setMode(m){mode=m;if(root)root.querySelectorAll("[data-mode]").forEach(function(x){x.classList.toggle("on",x.dataset.mode==m)});MAPX.setMode(m)}
+ function onClick(e){if(!R||R.done)return;pin=e.lngLat;if(pinMk)pinMk.remove();pinMk=new maplibregl.Marker({color:"#1b6f63"}).setLngLat(pin).addTo(map);$("guess").disabled=false}
+ function ensureMap(){return MAPX.init($("map")).then(function(m){map=m;built=MAPX.built();MAPX.attach($("map"));map.on("click",onClick);map.setMinZoom(10.5)})}
  function build(){
   root=document.createElement("div");root.id="lmroot";
   root.innerHTML="<div id='clue'></div><div id='mapwrap' hidden><div class='row tight'><button class='btn alt on' data-mode='streets'>Streets</button><button class='btn alt' data-mode='sat'>Satellite</button><button class='btn alt' data-mode='hybrid'>Hybrid</button></div><div class='lmmap' id='map'></div><div class='row tight' id='clues' hidden style='margin-top:10px'></div><p class='mute' id='cluecost' hidden></p><div class='row'><button class='btn' id='guess' disabled>Lock in guess</button><button class='btn alt' id='hintbtn'>Ask a local (0.25 h)</button></div><div class='hint' id='hint' hidden></div></div><div id='result' hidden></div>";
@@ -137,7 +97,7 @@ function buy(k){
   reset();build();cb=onDone;
   R={cfg:cfg,done:false,hinted:false,bought:{},cost:0,clueMode:cfg.clueMode||"pay"};
   $("clue").innerHTML="<h2>Finding the spot in "+esc(cfg.name)+"...</h2>";
-  lazy().then(function(){return cfg.landmark?getNamed(cfg):getLandmark([cfg.name,"",cfg.lat,cfg.lon],cfg.level||"mixed")}).then(function(lm){
+  MAPX.load().then(function(){return cfg.landmark?getNamed(cfg):getLandmark([cfg.name,"",cfg.lat,cfg.lon],cfg.level||"mixed")}).then(function(lm){
    R.lm=lm;
    $("clue").innerHTML="<h2>Where was this photo taken"+(cfg.landmark?"":" in "+esc(cfg.name))+"?</h2><img class='lmphoto' alt='A landmark near "+esc(cfg.name)+"' src='"+esc(lm.src)+"'><p class='credit'>Photo from Wikipedia (Wikimedia Commons). Credit and licence are on the article, linked after you guess.</p>";
    $("mapwrap").hidden=false;
@@ -151,7 +111,10 @@ function buy(k){
   }).catch(function(e){console.warn(e);fail(e&&e.message)})
  }
  function attach(el){if(root&&el){el.appendChild(root);if(map)setTimeout(function(){map.resize()},30)}}
- function reset(){if(map){try{map.remove()}catch(e){}}map=null;built=null;pinMk=null;truthMk=null;pin=null;R=null;cb=null;if(root&&root.parentNode)root.parentNode.removeChild(root);root=null}
+ function reset(){
+  if(map){map.off("click",onClick);map.setMaxBounds(null);map.setMinZoom(0);["miss","dots"].concat(Object.keys(CLUES).map(function(k){return"clue-"+k})).forEach(function(id){if(map.getLayer(id))map.removeLayer(id)});["miss","dots"].forEach(function(id){if(map.getSource(id))map.removeSource(id)})}
+  if(pinMk)pinMk.remove();if(truthMk)truthMk.remove();
+  map=null;built=null;pinMk=null;truthMk=null;pin=null;R=null;cb=null;if(root&&root.parentNode)root.parentNode.removeChild(root);root=null}
  function hint(){
   if(!R||R.done||R.hinted||!R.lm)return;R.hinted=true;$("hintbtn").disabled=true;var h=$("hint"),lm=R.lm,m=hav(R.cfg.lat,R.cfg.lon,lm.lat,lm.lon);
   h.hidden=false;h.textContent="A local says"+(lm.desc?": it's a "+lm.desc.replace(/^[A-Z]/,function(c){return c.toLowerCase()}):"")+(lm.desc?", ":": ")+"about "+(m<300?"right here in the area":(m/1000).toFixed(1)+" km "+bearingWord(R.cfg.lat,R.cfg.lon,lm.lat,lm.lon)+" of the centre")+"."

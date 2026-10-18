@@ -71,3 +71,5 @@ label{display:block;font-size:.9rem;color:var(--mute);margin-bottom:4px}
 #lm .btn.on{outline:2px solid var(--acc)}
 #lm .btn:disabled{opacity:.45;cursor:not-allowed}
 #lm h2{margin-top:0}
+
+.jmap{height:56vh;min-height:320px;border-radius:8px;border:1px solid var(--line);overflow:hidden}

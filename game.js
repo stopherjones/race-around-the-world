@@ -6,7 +6,7 @@ var CARDS={rail:["Rail pass","Train and fast-train fares cost 30% less.",1],prio
 
 function hav(a,b){var A=N[a],B=N[b],r=Math.PI/180,x=(B.lo-A.lo)*r*Math.cos((A.la+B.la)/2*r),y=(B.la-A.la)*r;return Math.sqrt(x*x+y*y)*6371}
 function arrow(a,b){if(a==b)return"\u2713";var A=N[a],B=N[b],r=Math.PI/180,x=(B.lo-A.lo)*Math.cos((A.la+B.la)/2*r),y=B.la-A.la,i=Math.round(((Math.atan2(x,y)/r+360)%360)/45)%8;return["\u2191 N","\u2197 NE","\u2192 E","\u2198 SE","\u2193 S","\u2199 SW","\u2190 W","\u2196 NW"][i]}
-function status(){if(S.over)return["\ud83c\udfc1","Finished"];if(S.phase=="lastmile")return["\ud83d\udccd","Last mile"];if(S.phase=="stay")return["\ud83d\udecf\ufe0f","Finding a bed"];return{r:["\ud83d\ude86","Train station"],b:["\ud83d\ude8c","Bus station"],f:["\u26f4\ufe0f","Ferry terminal"],a:["\u2708\ufe0f","Airport"]}[S.term]}
+function status(){if(S.over)return["\ud83c\udfc1","Finished"];if(S.phase=="plan")return["\ud83e\udded","Planning"];if(S.phase=="lastmile")return["\ud83d\udccd","Last mile"];if(S.phase=="stay")return["\ud83d\udecf\ufe0f","Finding a bed"];return{r:["\ud83d\ude86","Train station"],b:["\ud83d\ude8c","Bus station"],f:["\u26f4\ufe0f","Ferry terminal"],a:["\u2708\ufe0f","Airport"]}[S.term]}
 function dir(a,b){var A=N[a],B=N[b],r=Math.PI/180,x=(B.lo-A.lo)*Math.cos((A.la+B.la)/2*r),y=B.la-A.la,g=(Math.atan2(x,y)/r+360)%360;return["north","north-east","east","south-east","south","south-west","west","north-west"][Math.round(g/45)%8]}
 function val(a,b,m){
  var d=hav(a,b)*1.25,k=IDX[N[a].c],uk=N[a].c=="U",h,c;
@@ -76,48 +76,93 @@ function stayCost(k,n){return Math.round([0,22,65][k]*IDX[N[n].c]*[0,.9,1.1,1.4]
 function hpush(a,x){a.push(x);var i=a.length-1;while(i>0){var p=(i-1)>>1;if(a[p].w<=a[i].w)break;var t=a[p];a[p]=a[i];a[i]=t;i=p}}
 function hpop(a){var t=a[0],l=a.pop();if(a.length){a[0]=l;var i=0,n=a.length;for(;;){var c=2*i+1;if(c>=n)break;if(c+1<n&&a[c+1].w<a[c].w)c++;if(a[i].w<=a[c].w)break;var u=a[i];a[i]=a[c];a[c]=u;i=c}}return t}
 function mkRooms(){var n=N[S.loc],p=[[0,.4,.7,.9][n.s],[0,.55,.85,.97][n.s]],k=IDX[n.c]*[0,.9,1.1,1.4][n.s],r=[];[["Hostel bed",22,0],["Hotel room",65,1]].forEach(function(t,i){if(Math.random()<p[i])r.push({n:t[0],c:Math.round(t[1]*k*(.8+Math.random()*.5)),q:t[2]})});return r}
-var MAP={ready:false,k:1};
-function nx(n){return MAP.proj([N[n].lo,N[n].la])}
+function ll(n){return[N[n].lo,N[n].la]}
 function rivalPos(){
  var b=S.bot,k=S.over?b.names.length-1:0;
  if(!S.over)b.times.forEach(function(t,i){if(t<=S.h)k=i});
- var P=[];for(var i=0;i<=k;i++)P.push(nx(b.names[i]));
- if(k<b.names.length-1){var A=P[k],B=nx(b.names[k+1]),f=Math.min(1,(S.h-b.times[k])/((b.times[k+1]-b.times[k])||1)),c=[A[0]+(B[0]-A[0])*f,A[1]+(B[1]-A[1])*f];P.push(c);return{P:P,cur:c}}
+ var P=[];for(var i=0;i<=k;i++)P.push(ll(b.names[i]));
+ if(k<b.names.length-1){var A=P[k],B=ll(b.names[k+1]),f=Math.min(1,(S.h-b.times[k])/((b.times[k+1]-b.times[k])||1)),c=[A[0]+(B[0]-A[0])*f,A[1]+(B[1]-A[1])*f];P.push(c);return{P:P,cur:c}}
  return{P:P,cur:P[P.length-1]}}
-function loadMap(){
- if(typeof d3==="undefined"||typeof topojson==="undefined")return;
- fetch("data/europe.json").then(function(r){return r.json()}).then(function(w){
-  var W=500,H=520,pts={type:"MultiPoint",coordinates:ids.map(function(i){return[N[i].lo,N[i].la]})},
-  proj=d3.geoConicConformal().parallels([40,58]).rotate([-8,0]).fitExtent([[16,16],[W-16,H-16]],pts),
-  path=d3.geoPath(proj),
-  svg=d3.select(document.createElementNS("http://www.w3.org/2000/svg","svg")).attr("viewBox","0 0 "+W+" "+H).attr("class","map").attr("role","img").attr("aria-label","Map of the journey"),
-  root=svg.append("g");
-  root.append("path").datum(topojson.feature(w,w.objects.countries)).attr("class","land").attr("d",path);
-  root.append("path").datum(topojson.mesh(w,w.objects.countries,function(a,b){return a!==b})).attr("class","brd").attr("d",path);
-  var ov=root.append("g"),
-  zoom=d3.zoom().scaleExtent([1,14]).translateExtent([[0,0],[W,H]]).filter(function(e){if(e.type==="wheel")return e.ctrlKey||e.metaKey;if(e.touches)return e.touches.length>1;return!e.button}).on("zoom",function(e){MAP.k=e.transform.k;root.attr("transform",e.transform);drawMap()});
-  svg.call(zoom).style("touch-action","pan-y");
-  MAP={ready:true,k:1,svg:svg,el:svg.node(),root:root,ov:ov,proj:proj,zoom:zoom};
-  drawMap()}).catch(function(e){console.warn("Map data not loaded",e)})
+// ---- Journey map: overlay layers on the shared MapLibre map (map.js)
+var MJ={p:null,fit:""},JL=["j-ferry","j-nodes","j-opt","j-riv","j-me","j-opts","j-optlab","j-pts","j-ptlab"];
+function fc(f){return{type:"FeatureCollection",features:f}}
+function ptf(c,p){return{type:"Feature",properties:p||{},geometry:{type:"Point",coordinates:c}}}
+function lnf(c){return c.length>1?{type:"Feature",properties:{},geometry:{type:"LineString",coordinates:c}}:fc([])}
+function jvis(map,on){JL.forEach(function(id){if(map.getLayer(id))map.setLayoutProperty(id,"visibility",on?"visible":"none")})}
+function setupJourney(map){
+ if(map.getSource("j-nodes"))return;
+ var F=MAPX.built().font,halo={"text-color":"#13242f","text-halo-color":"#ffffff","text-halo-width":1.6};
+ map.addSource("j-ferry",{type:"geojson",data:fc(E.filter(function(e){return e.m=="ferry"}).map(function(e){return lnf([ll(e.a),ll(e.b)])}))});
+ map.addLayer({id:"j-ferry",type:"line",source:"j-ferry",paint:{"line-color":"#566872","line-width":1.4,"line-opacity":.8,"line-dasharray":[3,2]}});
+ map.addSource("j-nodes",{type:"geojson",data:fc(ids.map(function(i){return ptf(ll(i))}))});
+ map.addLayer({id:"j-nodes",type:"circle",source:"j-nodes",paint:{"circle-radius":2.5,"circle-color":"#566872","circle-opacity":.55}});
+ ["j-opt","j-riv","j-me","j-opts","j-pts"].forEach(function(id){map.addSource(id,{type:"geojson",data:fc([])})});
+ map.addLayer({id:"j-opt",type:"line",source:"j-opt",layout:{"line-cap":"round"},paint:{"line-color":"#566872","line-width":2,"line-dasharray":[0.5,2.5]}});
+ map.addLayer({id:"j-riv",type:"line",source:"j-riv",paint:{"line-color":"#d0432b","line-width":2.5,"line-dasharray":[3,2]}});
+ map.addLayer({id:"j-me",type:"line",source:"j-me",layout:{"line-join":"round"},paint:{"line-color":"#1b6f63","line-width":3.5}});
+ map.addLayer({id:"j-opts",type:"circle",source:"j-opts",paint:{"circle-radius":6,"circle-color":"#ffffff","circle-stroke-color":"#1b6f63","circle-stroke-width":2}});
+ map.addLayer({id:"j-optlab",type:"symbol",source:"j-opts",layout:{"text-field":["get","name"],"text-font":F,"text-size":12,"text-offset":[0,1],"text-anchor":"top","symbol-sort-key":1},paint:halo});
+ map.addLayer({id:"j-pts",type:"circle",source:"j-pts",paint:{"circle-radius":["match",["get","kind"],"goal",8,"me",7,5],"circle-color":["match",["get","kind"],"start","#13242f","me","#1b6f63","riv","#d0432b","rgba(0,0,0,0)"],"circle-stroke-color":["match",["get","kind"],"goal","#d0432b","#ffffff"],"circle-stroke-width":["match",["get","kind"],"goal",3,2]}});
+ map.addLayer({id:"j-ptlab",type:"symbol",source:"j-pts",layout:{"text-field":["get","label"],"text-font":F,"text-size":12,"text-offset":[0,1.1],"text-anchor":"top","text-allow-overlap":true,"symbol-sort-key":0},paint:halo})
+}
+function fitJourney(map){
+ var p=[ll(S.start),ll(S.goal),ll(S.loc)].concat(rivalPos().P);if(S.over&&S.opt)p=p.concat(S.opt.names.map(ll));
+ var b=new maplibregl.LngLatBounds(p[0],p[0]);p.forEach(function(c){b.extend(c)});
+ map.fitBounds(b,{padding:48,maxZoom:8,duration:0})
+}
+function updateJourney(map){
+ jvis(map,true);
+ var rv=rivalPos(),src=function(id,d){var s=map.getSource(id);if(s)s.setData(d)};
+ src("j-me",lnf(S.path.map(ll)));src("j-riv",lnf(rv.P));src("j-opt",S.over&&S.opt?lnf(S.opt.names.map(ll)):fc([]));
+ var o=[];if(!S.over&&S.phase=="move"){var all=opts();vis().show.forEach(function(i){o.push(ptf(ll(all[i].to),{name:N[all[i].to].n}))})}
+ src("j-opts",fc(o));
+ src("j-pts",fc([ptf(ll(S.start),{kind:"start",label:""}),ptf(ll(S.goal),{kind:"goal",label:N[S.goal].n}),ptf(ll(S.loc),{kind:"me",label:S.loc==S.goal?"":N[S.loc].n}),ptf(rv.cur,{kind:"riv",label:"Rival"})]));
+ var key=S.start+S.goal+(S.over?"o":"");if(MJ.fit!=key){MJ.fit=key;fitJourney(map)}
 }
 function drawMap(){
- var box=document.getElementById("mapbox");
- if(!MAP.ready||!box||!S)return;
- if(MAP.el.parentNode!==box)box.appendChild(MAP.el);
- var k=MAP.k,u=(MAP.el.clientWidth||360)/500,f=function(a){return a.map(function(p){return p[0].toFixed(1)+","+p[1].toFixed(1)}).join(" ")},
- dt=function(p,r,c){return"<circle class='"+c+"' cx='"+p[0].toFixed(1)+"' cy='"+p[1].toFixed(1)+"' r='"+(r/k).toFixed(2)+"'/>"},
- lb=function(p,t){return"<text x='"+(p[0]+7/k).toFixed(1)+"' y='"+(p[1]+3/k).toFixed(1)+"' font-size='"+(11/(k*u)).toFixed(2)+"' stroke-width='"+(3/(k*u)).toFixed(2)+"'>"+t+"</text>"},
- s="";
- E.forEach(function(e){if(e.m=="ferry")s+="<polyline class='fy' points='"+f([nx(e.a),nx(e.b)])+"'/>"});
- ids.forEach(function(i){s+=dt(nx(i),1.8,"nd")});
- if(S.over)s+="<polyline class='po' points='"+f(S.opt.names.map(nx))+"'/>";
- var rv=rivalPos();
- s+="<polyline class='pr' points='"+f(rv.P)+"'/><polyline class='pm' points='"+f(S.path.map(nx))+"'/>";
- if(!S.over&&S.phase=="move"){var all=opts();vis().show.forEach(function(i){var p=nx(all[i].to);s+=dt(p,4.5,"do")+lb(p,N[all[i].to].n)})}
- s+=dt(nx(S.start),4,"ds")+dt(nx(S.goal),6,"dg")+lb(nx(S.goal),N[S.goal].n)+dt(nx(S.loc),5,"dm")+dt(rv.cur,4,"dr")+lb(rv.cur,"Rival");
- MAP.ov.node().innerHTML=s}
-function mapPanel(){return"<div class='panel'><h2>Map</h2><div id='mapbox'></div><div class='zc'><button onclick='mz(1.7)' aria-label='Zoom in'>+</button><button onclick='mz(1/1.7)' aria-label='Zoom out'>\u2212</button><button onclick='mz(0)'>Reset</button></div></div>"}
-function mz(f){if(!MAP.ready)return;if(!f)MAP.svg.transition().duration(200).call(MAP.zoom.transform,d3.zoomIdentity);else MAP.svg.transition().duration(200).call(MAP.zoom.scaleBy,f)}
+ var box=document.getElementById("mapbox");if(!box||!S)return;
+ MJ.p=MJ.p||MAPX.init(box).catch(function(e){MJ.p=null;console.warn("Map failed",e);var pf=document.getElementById("planfail");if(pf)pf.hidden=false});
+ MJ.p.then(function(map){var b=document.getElementById("mapbox");if(!map||!b||!S)return;MAPX.attach(b);setupJourney(map);if(S.phase=="plan")planMap(map);else{planClean(map);updateJourney(map)}})
+}
+// ---- Planning phase: guess where the destination is on the unlabelled map; the error becomes time lost before you leave
+var PL={on:false,pin:null,truth:null,guess:null,fn:null},PLAN_KM_PER_H=150,PLAN_MAX_H=8,PLAN_RIVAL_KM=300;
+function kmc(a,b){var r=Math.PI/180,x=(b[0]-a[0])*r*Math.cos((a[1]+b[1])/2*r),y=(b[1]-a[1])*r;return Math.sqrt(x*x+y*y)*6371}
+function planLost(km){return Math.min(PLAN_MAX_H,km/PLAN_KM_PER_H)}
+function gauss(){var u=1-Math.random(),v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function planMap(map){
+ jvis(map,false);if(PL.on)return;PL.on=true;
+ var b=new maplibregl.LngLatBounds(ll(ids[0]),ll(ids[0]));ids.forEach(function(i){b.extend(ll(i))});
+ map.setMinZoom(2.5);map.fitBounds(b,{padding:24,duration:0});
+ PL.fn=function(e){if(!S||S.phase!="plan"||S.plan)return;PL.guess=[e.lngLat.lng,e.lngLat.lat];if(PL.pin)PL.pin.remove();PL.pin=new maplibregl.Marker({color:"#1b6f63"}).setLngLat(e.lngLat).addTo(map);var g=document.getElementById("planguess");if(g)g.disabled=false};
+ map.on("click",PL.fn)
+}
+function planClean(map){
+ if(!PL.on)return;PL.on=false;map.off("click",PL.fn);if(PL.pin)PL.pin.remove();if(PL.truth)PL.truth.remove();PL.pin=PL.truth=null;PL.guess=null;
+ if(map.getLayer("p-miss"))map.removeLayer("p-miss");if(map.getSource("p-miss"))map.removeSource("p-miss");map.setMinZoom(0)
+}
+function planPanel(){
+ return"<div class='panel'><h2>Planning in "+(S.start=="lon"?"Trafalgar Square":esc(N[S.start].n))+"</h2><p class='big' style='font-size:1.5rem'>Where is "+esc(N[S.goal].n)+"?</p><p class='mute' style='margin:0 0 10px'>Tap the map to drop a pin. The further off you are, the more time you lose working out how to get there.</p><div id='mapbox' class='jmap'></div><div class='row' style='margin-top:10px'><button class='btn' id='planguess' onclick='planGuess()'"+(PL.guess&&!S.plan?"":" disabled")+">Lock in guess</button></div><div id='planres'>"+(S.plan?planResHtml():"")+"</div><div id='planfail' hidden><p class='mute'>The map couldn't load.</p><button class='btn alt' onclick='planDone(1)'>Skip planning</button></div></div>"
+}
+function planResHtml(){var p=S.plan;return"<p>You were "+Math.round(p.km)+" km off: "+mins(p.lost)+" lost. The rival was "+Math.round(p.rkm)+" km off: "+mins(p.rl)+" lost.</p><button class='btn' onclick='planDone()'>Start travelling</button>"}
+function planGuess(){
+ if(S.phase!="plan"||S.plan||!PL.guess)return;
+ var t=ll(S.goal),km=kmc(PL.guess,t),rkm=Math.exp(Math.log(PLAN_RIVAL_KM)+.9*gauss());
+ S.plan={km:km,lost:planLost(km),rkm:rkm,rl:planLost(rkm)};
+ document.getElementById("planguess").disabled=true;document.getElementById("planres").innerHTML=planResHtml();
+ var g=PL.guess;
+ MJ.p&&MJ.p.then(function(map){if(!map)return;PL.truth=new maplibregl.Marker({color:"#2e9e4f"}).setLngLat(t).addTo(map);
+  map.addSource("p-miss",{type:"geojson",data:lnf([g,t])});map.addLayer({id:"p-miss",type:"line",source:"p-miss",paint:{"line-color":"#d0432b","line-width":3,"line-dasharray":[2,2]}});
+  var b=new maplibregl.LngLatBounds(g,g);b.extend(t);map.fitBounds(b,{padding:60,maxZoom:6,duration:600})})
+}
+function planDone(skip){
+ if(S.phase!="plan")return;
+ if(!S.plan){if(!skip)return;S.plan={km:0,lost:0,rkm:0,rl:0,skipped:1}}
+ var p=S.plan;S.h+=p.lost;S.bot.h+=p.rl;S.bot.score+=p.rl;for(var i=1;i<S.bot.times.length;i++)S.bot.times[i]+=p.rl;
+ S.phase="move";say(p.skipped?"Planning skipped.":"Planning: "+Math.round(p.km)+" km off, "+mins(p.lost)+" lost before leaving.");render()
+}
+function planHtml(){var p=S.plan;if(!p||p.skipped)return"";return"<p class='res'><b>Planning: "+Math.round(p.km)+" km off</b><span>You lost "+mins(p.lost)+", the rival "+mins(p.rl)+".</span></p>"}
+function mapPanel(){return"<div class='panel'><h2>Map</h2><div id='mapbox' class='jmap'></div><div class='zc'><button onclick='mfit()'>Fit journey</button></div></div>"}
+function mfit(){if(MJ.p)MJ.p.then(function(map){if(map&&S)fitJourney(map)})}
 var TN={r:"train station",b:"bus station",f:"ferry terminal",a:"airport"},TV={r:"Train station",b:"Bus station",f:"Ferry terminal",a:"Airport"};
 function grp(m){return{tube:"r",rail:"r",hsr:"r",bus:"b",coach:"b",ferry:"f",air:"a"}[m]}
 function terms(n){var o={},r=[];(ADJ[n]||[]).forEach(function(j){var e=E[j];if(S.air||e.m!="air")o[grp(e.m)]=1});["r","b","f","a"].forEach(function(g){if(o[g])r.push(g)});return r}
@@ -154,7 +199,7 @@ function run(steps,events){
  return{names:names,times:times,modes:modes,nights:nights,h:h,c:c,score:h+c/VT}
 }
 function newRace(a,b,air,evn,lm){
- S={start:a,goal:b,air:air,ev:evn,lmOn:!!(lm&&lm.on),lmClue:lm&&lm.clue,lmLevel:lm&&lm.level,rooms:[],wait:0,tired:false,pend:null,loc:a,h:0,spent:0,cards:[],path:[a],modes:[],nights:[],rev:{},log:["Get from "+N[a].n+" to "+N[b].n+" before your rival does."],phase:"move",draft:[],over:null};
+ S={start:a,goal:b,air:air,ev:evn,lmOn:!!(lm&&lm.on),planOn:!!(lm&&lm.plan),lmClue:lm&&lm.clue,lmLevel:lm&&lm.level,rooms:[],wait:0,tired:false,pend:null,loc:a,h:0,spent:0,cards:[],path:[a],modes:[],nights:[],rev:{},log:["Get from "+(a=="lon"?"Trafalgar Square":N[a].n)+" to "+N[b].n+" before your rival does."],phase:(lm&&lm.plan)?"plan":"move",draft:[],over:null};
  S.term=terms(a)[0];S.arr=0;var B=Math.max(80,Math.round((60+.3*hav(a,b))/10)*10),p=plan(0,B),t=0;
  while(!p&&t++<4){B=Math.round(B*1.5);p=plan(0,B)}
  if(!p){S=null;return false}
@@ -205,9 +250,12 @@ function pick(k){
  if(opts(1).every(function(o){return o.c>S.cash}))S.over="broke";
  render()
 }
+var MIN_KM=1000,MAX_KM=2000;
+function isCity(i){return!N[i].l&&(N[i].s>=2||EXTRA_CITIES.indexOf(i)>-1)}
+function pickDest(from){var c=ids.filter(function(i){var d=hav(from,i);return i!=from&&isCity(i)&&d>=MIN_KM&&d<=MAX_KM});return c.length?c[Math.floor(Math.random()*c.length)]:null}
 function begin(random){
- var a=document.getElementById("from"),b=document.getElementById("to"),air=document.getElementById("air").checked,evn=document.getElementById("evn").checked,lm={on:document.getElementById("lmon").checked,clue:document.getElementById("lmclue").value,level:document.getElementById("lmlevel").value},x,y;
- if(random){var t=0;do{x=towns[Math.floor(Math.random()*towns.length)];y=ids[Math.floor(Math.random()*ids.length)];t++}while((x==y||hav(x,y)<250||hav(x,y)>900)&&t<500)}
+ var a=document.getElementById("from"),b=document.getElementById("to"),air=document.getElementById("air").checked,evn=document.getElementById("evn").checked,lm={on:document.getElementById("lmon").checked,clue:document.getElementById("lmclue").value,level:document.getElementById("lmlevel").value,plan:document.getElementById("planon").checked},x,y;
+ if(random){x="lon";var t=0,ok=false;while(!ok&&t++<8){y=pickDest(x);ok=y&&newRace(x,y,air,evn,lm)}if(!ok){S=null;return render("Couldn't find a route. Try again.")}return render()}
  else{x=a.value;y=b.value}
  if(x==y){S=null;return render("Choose two different places.")}
  if(!newRace(x,y,air,evn,lm))return render("No route found between those places.");
@@ -222,9 +270,9 @@ function res(l,r){return"<p class='res'><b>"+l+": "+r.h.toFixed(1)+" h, \u00a3"+
 function mins(h){var m=Math.round(h*60);return m<60?m+" min":Math.floor(m/60)+" h "+(m%60)+" min"}
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function startLM(){
- var g=N[S.goal];
+ var g=N[S.goal];if(MJ.p)MJ.p.then(function(m){if(m)jvis(m,false)});
  LM.start({name:g.n,lat:g.la,lon:g.lo,landmark:g.l,level:S.lmLevel||"mixed",clueMode:S.lmClue||"pay"},function(r){
-  S.lm=r;S.h+=r.lost;S.bot.h+=r.rivalLost;S.bot.score+=r.rivalLost;S.over="done";S.phase="move";
+  LM.reset();S.lm=r;S.h+=r.lost;S.bot.h+=r.rivalLost;S.bot.score+=r.rivalLost;S.over="done";S.phase="move";
   say(clk(S.h)+": Last mile: "+(r.skipped?"skipped.":r.title+", "+r.distText+" off, "+mins(r.lost)+" lost."));render()})
 }
 function lmHtml(){var r=S.lm;if(!r)return"";return"<p class='res'><b>Last mile: "+(r.skipped?"skipped":esc(r.title)+" ("+r.distText+" off)")+"</b><span>You lost "+mins(r.lost)+(r.skipped?"":", the rival "+mins(r.rivalLost))+".</span></p>"}
@@ -232,20 +280,20 @@ function render(msg){
  save();var h="<h1>Cross-Channel race</h1>";
  if(!S){
   var os=ids.slice().sort(function(a,b){return N[a].n<N[b].n?-1:1}).map(function(i){return"<option value='"+i+"'>"+N[i].n+"</option>"}).join("");
-  h+="<p class='sub'>Routes are generated by rules from a list of "+ids.length+" places. Choose where to start and finish.</p><div class='panel'><label for='from'>From</label><select id='from'>"+os+"</select><label for='to'>To</label><select id='to'>"+os+"</select>"+(msg?"<p style='color:var(--bad)'>"+msg+"</p>":"")+"<label style='display:flex;gap:8px;align-items:center;color:var(--ink)'><input type='checkbox' id='air' checked> Allow flights</label><label style='display:flex;gap:8px;align-items:center;color:var(--ink);margin-top:8px'><input type='checkbox' id='evn'> Random events and boon cards</label><label style='display:flex;gap:8px;align-items:center;color:var(--ink);margin-top:8px'><input type='checkbox' id='lmon' checked> Last-mile photo challenge at the destination</label><label for='lmclue' style='margin-top:8px'>Last-mile map clues</label><select id='lmclue'><option value='pay'>Pay for icon reveals (time cost)</option><option value='free'>Common icons free</option><option value='off'>Roads only, no reveals</option></select><label for='lmlevel'>Last-mile difficulty</label><select id='lmlevel'><option value='easy'>Famous landmarks</option><option value='mixed' selected>Mixed</option><option value='hard'>Local sights</option></select><div class='row' style='margin-top:12px'><button class='btn' onclick='begin()'>Start race</button><button class='btn alt' onclick='begin(1)'>Surprise me</button></div></div>";
+  h+="<p class='sub'>You start in Trafalgar Square, London. Your destination is a random city 1,000 to 2,000 km away.</p><div class='panel'>"+(msg?"<p style='color:var(--bad)'>"+msg+"</p>":"")+"<label style='display:flex;gap:8px;align-items:center;color:var(--ink)'><input type='checkbox' id='air' checked> Allow flights</label><label style='display:flex;gap:8px;align-items:center;color:var(--ink);margin-top:8px'><input type='checkbox' id='evn'> Random events and boon cards</label><label style='display:flex;gap:8px;align-items:center;color:var(--ink);margin-top:8px'><input type='checkbox' id='planon' checked> Planning phase in London</label><label style='display:flex;gap:8px;align-items:center;color:var(--ink);margin-top:8px'><input type='checkbox' id='lmon' checked> Last-mile photo challenge at the destination</label><label for='lmclue' style='margin-top:8px'>Last-mile map clues</label><select id='lmclue'><option value='pay'>Pay for icon reveals (time cost)</option><option value='free'>Common icons free</option><option value='off'>Roads only, no reveals</option></select><label for='lmlevel'>Last-mile difficulty</label><select id='lmlevel'><option value='easy'>Famous landmarks</option><option value='mixed' selected>Mixed</option><option value='hard'>Local sights</option></select><div class='row' style='margin-top:12px'><button class='btn' onclick='begin(1)'>Start journey</button></div><details style='margin-top:14px'><summary class='mute'>Choose start and destination yourself</summary><label for='from' style='margin-top:10px'>From</label><select id='from'>"+os+"</select><label for='to'>To</label><select id='to'>"+os+"</select><button class='btn alt' onclick='begin()'>Start with these places</button></details></div>";
   document.getElementById("app").innerHTML=h;
-  document.getElementById("from").value="lon";document.getElementById("to").value="eif";return}
+  document.getElementById("from").value="lon";document.getElementById("to").value="rom";return}
  h+="<p class='sub'>Score is hours plus \u00a31 per three minutes (\u00a320 = 1 h). Lower wins.</p>";
  var st=status();
- h+="<div class='hdr'><div class='r1'><span><b>"+clk(S.h)+"</b></span><span><b>\u00a3"+S.cash+"</b> of \u00a3"+S.budget+"</span><span class='st'><span aria-hidden='true'>"+st[0]+"</span> "+st[1]+"</span></div><div class='r2'><div><small>From</small>"+N[S.start].n+"</div><div class='cur'><small>Now</small>"+N[S.loc].n+"</div><div><small>To "+arrow(S.loc,S.goal)+"</small>"+N[S.goal].n+"</div></div><div class='rv'>Rival "+rivalAt()+"</div></div>";
+ h+="<div class='hdr'><div class='r1'><span><b>"+clk(S.h)+"</b></span><span><b>\u00a3"+S.cash+"</b> of \u00a3"+S.budget+"</span><span class='st'><span aria-hidden='true'>"+st[0]+"</span> "+st[1]+"</span></div><div class='r2'><div><small>From</small>"+(S.start=="lon"?"Trafalgar Square":N[S.start].n)+"</div><div class='cur'><small>Now</small>"+N[S.loc].n+"</div><div><small>To "+(S.phase=="plan"&&!S.plan?"?":arrow(S.loc,S.goal))+"</small>"+N[S.goal].n+"</div></div><div class='rv'>Rival "+rivalAt()+"</div></div>";
  if(S.over){
   var you={names:S.path,modes:S.modes,nights:S.nights,h:S.h,c:S.spent,score:S.h+S.spent/VT},m=S.over=="broke"?"Stranded: you can't afford any onward fare from "+N[S.loc].n+".":(you.score<S.bot.score?"You beat the rival.":"The rival wins this one.");
-  h+="<div class='panel'><p class='big'>"+m+"</p>"+(S.over=="done"?res("You",you):"")+res("Rival",S.bot)+res("Best planned route",S.opt)+lmHtml()+"<button class='btn' onclick='reset()'>New race</button></div>"+mapPanel()
+  h+="<div class='panel'><p class='big'>"+m+"</p>"+(S.over=="done"?res("You",you):"")+res("Rival",S.bot)+res("Best planned route",S.opt)+planHtml()+lmHtml()+"<button class='btn' onclick='reset()'>New race</button></div>"+mapPanel()
  }else{
 
   if(S.cards.length)h+="<p class='hand'>Carrying: "+S.cards.map(function(k){return CARDS[k][0]}).join(", ")+"</p>";
-  if(S.phase=="lastmile")h+="<div class='panel'><h2>Last mile</h2><div id='lm'></div></div>";else h+=mapPanel();
-  if(S.phase=="lastmile"){}else if(S.phase=="stay"){var po=opts()[S.pend],ss=sched(po,S.loc,S.h);h+="<div class='panel'><h2>No service until "+tm(ss.dep)+"</h2><p style='margin:0 0 10px'>Where will you sleep in "+N[S.loc].n+"?</p>";S.rooms.forEach(function(x,k){h+="<button class='card' onclick='stay("+k+")'"+(x.c>S.cash?" disabled":"")+"><b>"+x.n+", \u00a3"+x.c+"</b><span>"+(x.q?"A proper night's rest.":"Cheap, but you may sleep badly.")+"</span></button>"});if(!S.rooms.length)h+="<p style='margin:0 0 10px'>No rooms are free in town tonight.</p><button class='card' onclick='stay(-1)'><b>Spend the night at the station</b><span>Free, but you will be tired: 1 h lost on the next leg.</span></button>";h+="<button class='link' onclick='S.phase=\"move\";S.pend=null;render()'>Choose a different option</button></div>"}else if(S.phase=="draft"){
+  if(S.phase=="lastmile")h+="<div class='panel'><h2>Last mile</h2><div id='lm'></div></div>";else if(S.phase=="plan")h+=planPanel();else h+=mapPanel();
+  if(S.phase=="lastmile"||S.phase=="plan"){}else if(S.phase=="stay"){var po=opts()[S.pend],ss=sched(po,S.loc,S.h);h+="<div class='panel'><h2>No service until "+tm(ss.dep)+"</h2><p style='margin:0 0 10px'>Where will you sleep in "+N[S.loc].n+"?</p>";S.rooms.forEach(function(x,k){h+="<button class='card' onclick='stay("+k+")'"+(x.c>S.cash?" disabled":"")+"><b>"+x.n+", \u00a3"+x.c+"</b><span>"+(x.q?"A proper night's rest.":"Cheap, but you may sleep badly.")+"</span></button>"});if(!S.rooms.length)h+="<p style='margin:0 0 10px'>No rooms are free in town tonight.</p><button class='card' onclick='stay(-1)'><b>Spend the night at the station</b><span>Free, but you will be tired: 1 h lost on the next leg.</span></button>";h+="<button class='link' onclick='S.phase=\"move\";S.pend=null;render()'>Choose a different option</button></div>"}else if(S.phase=="draft"){
    h+="<div class='panel'><h2>Pick one to take with you</h2>";
    S.draft.forEach(function(k){h+="<button class='card' onclick=\"pick('"+k+"')\"><b>"+CARDS[k][0]+"</b><span>"+CARDS[k][1]+"</span></button>"});
    h+="<button class='link' onclick='pick(null)'>Skip</button></div>"
@@ -265,5 +313,5 @@ function render(msg){
  h+="</ol></div><button class='link' onclick='if(confirm(\"Abandon this race?\"))reset()'>Abandon race</button>";
  document.getElementById("app").innerHTML=h;drawMap();if(S&&S.phase=="lastmile"&&!S.over)LM.attach(document.getElementById("lm"))
 }
-load();if(S&&S.phase=="lastmile"&&!S.over)startLM();render();loadMap();
+load();if(S&&S.phase=="lastmile"&&!S.over)startLM();render();
 window.addEventListener("resize",function(){drawMap()});
