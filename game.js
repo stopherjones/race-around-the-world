@@ -361,7 +361,7 @@ function render(msg){
  h+="<div class='hdr'><div class='r1'><span><b>"+clk(S.h)+"</b></span><span><b>\u00a3"+S.cash+"</b> of \u00a3"+S.budget+"</span><span class='st'><span aria-hidden='true'>"+st[0]+"</span> "+st[1]+"</span></div><div class='r2'><div><small>From</small>"+(S.start=="lon"?"Trafalgar Square":N[S.start].n)+"</div><div class='cur'><small>Now</small>"+N[S.loc].n+"</div><div><small>To "+(S.phase=="plan"&&!S.plan||S.phase=="routes"&&!S.route?"?":arrow(S.loc,S.goal))+"</small>"+N[S.goal].n+"</div></div><div class='rv'>Rival "+rivalAt()+"</div></div>";
  if(S.over){
   var you={names:S.path,modes:S.modes,nights:S.nights,h:S.h,c:S.spent,score:S.h+S.spent/VT},m=S.over=="broke"?"Stranded: you can't afford any onward fare from "+N[S.loc].n+".":(you.score<S.bot.score?"You beat the rival.":"The rival wins this one.");
-  h+="<div class='panel'><p class='big'>"+m+"</p>"+(S.over=="done"||S.path.length>1?journalHtml():"")+res("Best planned route",S.opt)+"<p class='mute'>Leg "+S.camp.legs+" complete. You carry \u00a3"+Math.max(0,Math.round(S.cash))+" into the next leg, plus \u00a3"+INCOME+" income.</p>"+restHtml()+campLogHtml()+"<div class='row'><button class='btn' onclick='nextLeg()'>Next leg</button><button class='btn alt' onclick='reset()'>End campaign</button></div></div>"+mapPanel()
+  h+="<div class='panel'><p class='big'>"+m+"</p>"+(S.over=="done"||S.path.length>1?journalHtml():"")+res("Best planned route",S.opt)+"<p class='mute'>Leg "+S.camp.legs+" complete. You carry \u00a3"+Math.max(0,Math.round(S.cash))+" into the next leg, plus \u00a3"+INCOME+" income.</p>"+restHtml()+campLogHtml()+"<div class='row'><button class='btn' onclick='nextLeg()'>Next leg</button><button class='btn alt' onclick='if(confirm(\"End your campaign? Saved progress will be cleared.\"))reset()'>End campaign</button></div></div>"+mapPanel()
  }else{
 
   if(S.cards.length)h+="<p class='hand'>Carrying: "+S.cards.map(function(k){return CARDS[k][0]}).join(", ")+"</p>";
@@ -383,7 +383,7 @@ function render(msg){
  }
  h+="<div class='panel'><h2>Travel log</h2><ol class='log' reversed>";
  S.log.slice(-6).reverse().forEach(function(l){h+="<li>"+l+"</li>"});
- h+="</ol></div><button class='link' onclick='if(confirm(\"Abandon this race?\"))reset()'>Abandon race</button>";
+ h+="</ol></div><button class='link' onclick='if(confirm(\"End your campaign? Saved progress will be cleared.\"))reset()'>End campaign</button>";
  document.getElementById("app").innerHTML=h;drawMap();bindRouteHover();if(S&&S.phase=="lastmile"&&!S.over)LM.attach(document.getElementById("lm"));if(S&&S.phase=="routes")document.querySelectorAll("[data-route]").forEach(function(b){b.onclick=function(){chooseRoute(+b.dataset.route)}})
 }
 load();if(S&&S.phase=="lastmile"&&!S.over)startLM();render();
