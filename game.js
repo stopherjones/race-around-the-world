@@ -1,6 +1,6 @@
 var VT=20,NOISE=.35,KEY="route-generator-v4",S=null,IDX={U:1.15,F:1,B:1.05,N:1.05,G:1.05,S:.85,T:.95,C:1.6,R:1.1};
 var N={};
-PLACES.split(";").forEach(function(s){var p=s.split("|"),f=p[5];N[p[0]]={n:p[1],la:+p[2],lo:+p[3],c:p[4],r:f.indexOf("r")>-1,a:f.indexOf("a")>-1,p:f.indexOf("p")>-1,h:f.indexOf("h")>-1,l:f.indexOf("l")>-1,s:+(f.match(/\d/)||[1])[0]}});
+function loadWorld(str){N={};str.split(";").forEach(function(s){var p=s.split("|"),f=p[5];N[p[0]]={n:p[1],la:+p[2],lo:+p[3],c:p[4],r:f.indexOf("r")>-1,a:f.indexOf("a")>-1,p:f.indexOf("p")>-1,h:f.indexOf("h")>-1,l:f.indexOf("l")>-1,s:+(f.match(/\d/)||[1])[0]}});ids=Object.keys(N);towns=ids.filter(function(i){return!N[i].l});E=[];ADJ={};seen={};buildLinks()}
 var MODE={tube:"metro",bus:"bus",coach:"coach",rail:"train",hsr:"fast train",ferry:"ferry",air:"flight"},GRP={rail:"Trains",hsr:"Fast trains",coach:"Coaches",bus:"Buses",ferry:"Ferries",air:"Flights",tube:"Metro"},ORD=["rail","hsr","coach","bus","ferry","air","tube"];
 var CARDS={rail:["Rail pass","Train and fast-train fares cost 30% less.",1],prio:["Priority boarding","Ferries and flights take 0.8 h less.",1],fixer:["Local fixer","Cancels your next bad event.",1],guide:["Local guide","Shows every onward option from here, free.",0],purse:["Winnings at cards","Gain \u00a340 now.",0]};
 
@@ -18,24 +18,37 @@ function val(a,b,m){
  else{d=hav(a,b)*1.05;h=d/700+2.2;c=(d*.12+30)*k}
  return[Math.round(h*10)/10,Math.round(c)]}
 
-var E=[],ADJ={},seen={},ids=Object.keys(N),towns=ids.filter(function(i){return!N[i].l});
+var E=[],ADJ={},seen={},ids=[],towns=[];
 function G(i){var c=N[i].c;return c=="U"?1:c=="R"?3:2}
 function mk(a,b,m,lg,h,c,dp,ev){
  var k=(a<b?a+b:b+a)+m;if(seen[k])return;seen[k]=1;
  var v=h?[h,c]:val(a,b,m),j=E.length;E.push({a:a,b:b,m:m,h:v[0],c:v[1],lg:lg,dp:dp,ev:ev,hw:ev?ev*24:0});
  (ADJ[a]=ADJ[a]||[]).push(j);(ADJ[b]=ADJ[b]||[]).push(j)}
-function nn(a,f,k,mx){return towns.filter(function(b){return b!=a&&G(b)==G(a)&&f(b)&&hav(a,b)<=mx}).sort(function(x,y){return hav(a,x)-hav(a,y)}).slice(0,k)}
-ids.forEach(function(a){
- if(N[a].l){nn(a,function(){return 1},2,150).forEach(function(b){mk(a,b,hav(a,b)<12?"tube":"bus",0)});return}
- nn(a,function(){return 1},3,120).forEach(function(b){mk(a,b,"bus",0)});
- if(N[a].r)nn(a,function(b){return N[b].r},3,250).forEach(function(b){mk(a,b,"rail",0)})});
-towns.forEach(function(a){towns.forEach(function(b){
- if(a>=b)return;var d=hav(a,b),A=N[a],B=N[b],same=G(a)==G(b);
- if(same&&A.r&&B.r&&A.s>1&&B.s>1&&d<650&&!(A.h&&B.h))mk(a,b,"rail",1);
- if(same&&A.h&&B.h&&d<1000)mk(a,b,"hsr",1);
- if(same&&((A.s==3||B.s==3)&&d<320||A.s>1&&B.s>1&&d<650))mk(a,b,"bus",1);
- if(A.a&&B.a&&d>250&&d<1500)mk(a,b,"air",1)})});
-CROSSINGS.split("|").forEach(function(s){var p=s.split(" ");mk(p[0],p[1],p[2],p[2]=="ferry"?0:1,+p[3],+p[4],p[5]?+p[5]:-1,p[6]?+p[6]:0)});
+// ---- Link generation, using a spatial grid so each place only looks at places near it (not every pair)
+var CELL=2,GRID={},IX={};
+function gridBuild(){GRID={};IX={};ids.forEach(function(i,n){IX[i]=n;var k=Math.floor(N[i].la/CELL)+"|"+Math.floor(N[i].lo/CELL);(GRID[k]=GRID[k]||[]).push(i)})}
+// Places within r km of a, in the same order as the places list (so results match the old every-pair search exactly)
+function near(a,r,raw){
+ var A=N[a],dl=r/111,dn=r/(111*Math.max(.2,Math.cos(Math.min(85,Math.abs(A.la)+dl)*Math.PI/180))),out=[];
+ for(var la=Math.floor((A.la-dl)/CELL);la<=Math.floor((A.la+dl)/CELL);la++)for(var lo=Math.floor((A.lo-dn)/CELL);lo<=Math.floor((A.lo+dn)/CELL);lo++){var c=GRID[la+"|"+lo];if(c)for(var q=0;q<c.length;q++){var b=c[q];if(b!=a&&hav(a,b)<=r)out.push(b)}}
+ return raw?out:out.sort(function(x,y){return IX[x]-IX[y]})
+}
+function nn(a,f,k,mx){return near(a,mx).filter(function(b){return!N[b].l&&G(b)==G(a)&&f(b)}).sort(function(x,y){return hav(a,x)-hav(a,y)}).slice(0,k)}
+function buildLinks(){
+ E.length=0;ADJ={};seen={};gridBuild();
+ ids.forEach(function(a){
+  if(N[a].l){nn(a,function(){return 1},2,150).forEach(function(b){mk(a,b,hav(a,b)<12?"tube":"bus",0)});return}
+  nn(a,function(){return 1},3,120).forEach(function(b){mk(a,b,"bus",0)});
+  if(N[a].r)nn(a,function(b){return N[b].r},3,250).forEach(function(b){mk(a,b,"rail",0)})});
+ ids.forEach(function(a){if(N[a].l)return;var A0=N[a],rr=Math.max(A0.s>1?650:0,A0.h?1000:0,A0.s==3?320:0,A0.a?1500:0);if(!rr)return;near(a,rr,1).forEach(function(b){
+  if(N[b].l)return;var d=hav(a,b),A=N[a],B=N[b],same=G(a)==G(b);
+  if(same&&A.r&&B.r&&A.s>1&&B.s>1&&d<650&&!(A.h&&B.h))mk(a,b,"rail",1);
+  if(same&&A.h&&B.h&&d<1000)mk(a,b,"hsr",1);
+  if(same&&((A.s==3||B.s==3)&&d<320||A.s>1&&B.s>1&&d<650))mk(a,b,"bus",1);
+  if(A.a&&B.a&&d>250&&d<1500)mk(a,b,"air",1)})});
+ CROSSINGS.split("|").forEach(function(s){var p=s.split(" ");mk(p[0],p[1],p[2],p[2]=="ferry"?0:1,+p[3],+p[4],p[5]?+p[5]:-1,p[6]?+p[6]:0)})
+}
+loadWorld(PLACES);
 
 function has(k){return S.cards.indexOf(k)>-1}
 function opts(all){
@@ -86,8 +99,8 @@ function sched(o,from,t){
 }
 function tm(h){var t=Math.round(480+h*60)%1440;return pad(Math.floor(t/60))+":"+pad(t%60)}
 function stayCost(k,n){return Math.round([0,22,65][k]*IDX[N[n].c]*[0,.9,1.1,1.4][N[n].s])}
-function hpush(a,x){a.push(x);var i=a.length-1;while(i>0){var p=(i-1)>>1;if(a[p].w<=a[i].w)break;var t=a[p];a[p]=a[i];a[i]=t;i=p}}
-function hpop(a){var t=a[0],l=a.pop();if(a.length){a[0]=l;var i=0,n=a.length;for(;;){var c=2*i+1;if(c>=n)break;if(c+1<n&&a[c+1].w<a[c].w)c++;if(a[i].w<=a[c].w)break;var u=a[i];a[i]=a[c];a[c]=u;i=c}}return t}
+function hpush(a,x){a.push(x);var i=a.length-1;while(i>0){var p=(i-1)>>1;if((a[p].f||a[p].w)<=(a[i].f||a[i].w))break;var t=a[p];a[p]=a[i];a[i]=t;i=p}}
+function hpop(a){var t=a[0],l=a.pop();if(a.length){a[0]=l;var i=0,n=a.length;for(;;){var c=2*i+1;if(c>=n)break;if(c+1<n&&(a[c+1].f||a[c+1].w)<(a[c].f||a[c].w))c++;if((a[i].f||a[i].w)<=(a[c].f||a[c].w))break;var u=a[i];a[i]=a[c];a[c]=u;i=c}}return t}
 function mkRooms(){var n=N[S.loc],p=[[0,.4,.7,.9][n.s],[0,.55,.85,.97][n.s]],k=IDX[n.c]*[0,.9,1.1,1.4][n.s],r=[];[["Hostel bed",22,0],["Hotel room",65,1]].forEach(function(t,i){if(Math.random()<p[i])r.push({n:t[0],c:Math.round(t[1]*k*(.8+Math.random()*.5)),q:t[2]})});return r}
 function ll(n){return[N[n].lo,N[n].la]}
 function rivalPos(){
@@ -261,19 +274,29 @@ function ev(r){
  if(r==6)return{h:-.3,c:0,t:"Smooth connection: 18 minutes saved."};
  return{h:0,c:0,t:"An uneventful hop."}
 }
-function plan(noise,B,X){X=X||{};var vt=X.vt||VT,st=X.from||S.start,gl=X.to||S.goal;
+// Route search only considers places in a corridor around the journey (start to goal), so the search stays fast however many places exist.
+// The player is not restricted: their own options at each stop still come from every link.
+var ACT={key:"",set:null},CORRIDOR=true,HEUR=true;
+function activeFor(a,b){
+ if(!CORRIDOR)return null;
+ var k=a+">"+b+">"+ids.length;if(ACT.key==k)return ACT.set;
+ var dd=hav(a,b),lim=1.3*dd+150,set={};
+ ids.forEach(function(n){if(hav(a,n)+hav(n,b)<=lim)set[n]=1});
+ ACT={key:k,set:set};return set
+}
+function plan(noise,B,X){X=X||{};var vt=X.vt||VT,st=X.from||S.start,gl=X.to||S.goal,act=activeFor(S.start,S.goal);
  var f=E.map(function(){return{h:1+noise*(Math.random()*2-1),c:1+noise*(Math.random()*2-1)}});
- var best={},done={},open=[];hpush(open,{n:st,g:X.g||S.term,c:0,w:0,e:[]});
+ var H=function(n){return HEUR?hav(n,gl)/800:0};var best={},done={},open=[];hpush(open,{n:st,g:X.g||S.term,c:0,w:0,f:H(st),e:[]});
  while(open.length){
   
   var s=hpop(open),k=s.n+s.g+(X.nb?"":"|"+Math.round(s.c/5));
   if(done[k])continue;done[k]=1;
   if(s.n==gl)return s.e;
   (ADJ[s.n]||[]).forEach(function(j){
-   var e=E[j];if(!S.air&&e.m=="air"||X.ban&&X.ban[j])return;var g2=grp(e.m),x=xf(s.n,s.g,g2),to=e.a==s.n?e.b:e.a,c2=s.c+x.c+e.c*f[j].c;if(!X.nb&&c2>B)return;
+   var e=E[j];if(!S.air&&e.m=="air"||X.ban&&X.ban[j])return;var g2=grp(e.m),x=xf(s.n,s.g,g2),to=e.a==s.n?e.b:e.a,c2=s.c+x.c+e.c*f[j].c;if(act&&!act[to])return;if(!X.nb&&c2>B)return;
    var w2=s.w+.6+x.h+x.c/vt+e.h*f[j].h+e.c*f[j].c/vt+(X.pen&&X.pen[j]||0),k2=to+g2+(X.nb?"":"|"+Math.round(c2/5));
    if(best[k2]!==undefined&&best[k2]<=w2)return;
-   best[k2]=w2;hpush(open,{n:to,g:g2,c:c2,w:w2,e:s.e.concat([{j:j,to:to}])})})
+   best[k2]=w2;hpush(open,{n:to,g:g2,c:c2,w:w2,f:w2+H(to),e:s.e.concat([{j:j,to:to}])})})
  }
  return null
 }
