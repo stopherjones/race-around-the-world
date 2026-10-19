@@ -159,6 +159,8 @@ function planClean(map){
  if(!PL.on)return;PL.on=false;map.off("click",PL.fn);if(PL.pin)PL.pin.remove();if(PL.truth)PL.truth.remove();PL.pin=PL.truth=null;PL.guess=null;
  if(map.getLayer("p-miss"))map.removeLayer("p-miss");if(map.getSource("p-miss"))map.removeSource("p-miss");map.setMinZoom(0)
 }
+// Route colours: the same as the route lines on the map
+function routeColour(label){return label=="Fast"?"#1b6f63":label=="Thrifty"?"#8a6d1f":"#7a3e9d"}
 function planPanel(){return planPanelBase()+boardHtml()}
 // Destination board: the key services on each route type, fixed for the day, so you and the rival see the same options
 function legTxt(e,from,to){
@@ -171,7 +173,7 @@ function boardHtml(){
  var rows=S.opts.map(function(o){
   var legs=o.steps.map(function(s,i){return legTxt(E[s.j],o.names[i],o.names[i+1])});
   var shown=legs.slice(0,4).map(function(t){return"<li>"+esc(t)+"</li>"}).join("")+(legs.length>4?"<li class='mute'>+"+(legs.length-4)+" more legs</li>":"");
-  return"<div class='panel'><h2>"+esc(o.label)+" route</h2><ul class='log'>"+shown+"</ul></div>"
+  return"<div class='panel' style='border:2px solid "+routeColour(o.label)+"'><h2>"+esc(o.label)+" route</h2><ul class='log'>"+shown+"</ul></div>"
  }).join("");
  return"<div class='panel'><h2>Destination board</h2><p class='mute'>Key services on each route to "+esc(N[S.goal].n)+". Timetables are fixed, so you and the rival face the same services.</p></div>"+rows
 }
@@ -216,7 +218,7 @@ function describeRoute(o){
 function routesPanel(){
  var o=S.opts||[];
  if(!o.length)return"<div class='panel'><h2>No routes</h2><p class='mute'>Couldn't find a route. Start a new journey.</p><button class='btn' onclick='reset()'>New journey</button></div>";
- var cards=o.map(function(r,i){return"<button class='card routecard' data-route='"+i+"'><b>"+esc(r.label)+"</b><span>"+esc(describeRoute(r))+"</span></button>"}).join("");
+ var cards=o.map(function(r,i){return"<button class='card routecard' style='border:2px solid "+routeColour(r.label)+"' data-route='"+i+"'><b>"+esc(r.label)+"</b><span>"+esc(describeRoute(r))+"</span></button>"}).join("");
  return"<div class='panel'><h2>Choose your route to "+esc(N[S.goal].n)+"</h2><p class='mute' style='margin:0 0 10px'>Costs, hotels and journey times are revealed once you set off.</p>"+cards+"</div>"
 }
 function bindRouteHover(){
