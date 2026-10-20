@@ -1,4 +1,4 @@
-var VT=20,NOISE=.35,KEY="route-generator-v4",S=null,IDX={U:1.15,F:1,B:1.05,N:1.05,G:1.05,S:.85,T:.95,C:1.6,R:1.1};
+var VT=20,NOISE=.35,KEY="route-generator-v4",S=null,IDX={U:1.15,F:1,B:1.05,N:1.05,G:1.05,S:.85,T:.95,C:1.6,R:1.1,D:1.3,E:.7};
 var N={};
 function loadWorld(str){N={};str.split(";").forEach(function(s){var p=s.split("|"),f=p[5];N[p[0]]={n:p[1],la:+p[2],lo:+p[3],c:p[4],r:f.indexOf("r")>-1,a:f.indexOf("a")>-1,p:f.indexOf("p")>-1,h:f.indexOf("h")>-1,l:f.indexOf("l")>-1,s:+(f.match(/\d/)||[1])[0]}});ids=Object.keys(N);towns=ids.filter(function(i){return!N[i].l});E=[];ADJ={};seen={};buildLinks()}
 var MODE={tube:"metro",bus:"bus",coach:"coach",rail:"train",hsr:"fast train",ferry:"ferry",air:"flight"},GRP={rail:"Trains",hsr:"Fast trains",coach:"Coaches",bus:"Buses",ferry:"Ferries",air:"Flights",tube:"Metro"},ORD=["rail","hsr","coach","bus","ferry","air","tube"];
@@ -20,7 +20,7 @@ function val(a,b,m){
 
 var E=[],ADJ={},seen={},ids=[],towns=[];
 function G(i){var c=N[i].c;return c=="U"?1:c=="R"?3:2}
-function mk(a,b,m,lg,h,c,dp,ev){
+function mk(a,b,m,lg,h,c,dp,ev){if(!N[a]||!N[b])return;
  var k=(a<b?a+b:b+a)+m;if(seen[k])return;seen[k]=1;
  var v=h?[h,c]:val(a,b,m),j=E.length;E.push({a:a,b:b,m:m,h:v[0],c:v[1],lg:lg,dp:dp,ev:ev,hw:ev?ev*24:0});
  (ADJ[a]=ADJ[a]||[]).push(j);(ADJ[b]=ADJ[b]||[]).push(j)}
@@ -48,7 +48,6 @@ function buildLinks(){
   if(A.a&&B.a&&d>250&&d<1500)mk(a,b,"air",1)})});
  CROSSINGS.split("|").forEach(function(s){var p=s.split(" ");mk(p[0],p[1],p[2],p[2]=="ferry"?0:1,+p[3],+p[4],p[5]?+p[5]:-1,p[6]?+p[6]:0)})
 }
-loadWorld(PLACES);
 
 function has(k){return S.cards.indexOf(k)>-1}
 function opts(all){
@@ -277,10 +276,12 @@ function ev(r){
 // Route search only considers places in a corridor around the journey (start to goal), so the search stays fast however many places exist.
 // The player is not restricted: their own options at each stop still come from every link.
 var ACT={key:"",set:null},CORRIDOR=true,HEUR=true;
+// Width of the travel corridor: wide enough to allow sensible detours (for example via a third country), not just the straight line
+function corridorLim(d){return 1.6*d+300}
 function activeFor(a,b){
  if(!CORRIDOR)return null;
  var k=a+">"+b+">"+ids.length;if(ACT.key==k)return ACT.set;
- var dd=hav(a,b),lim=1.3*dd+150,set={};
+ var dd=hav(a,b),lim=corridorLim(dd),set={};
  ids.forEach(function(n){if(hav(a,n)+hav(n,b)<=lim)set[n]=1});
  ACT={key:k,set:set};return set
 }
@@ -313,7 +314,7 @@ function newRace(a,b,air,evn,lm){
  if(!p){S=null;return false}
  S.budget=B;S.cash=B;S.opt=run(p,false);S.bot=run(plan(NOISE,B)||p,true);S.opts=routeOptions(S.budget);return true
 }
-function load(){try{var r=localStorage.getItem(KEY);if(r){var o=JSON.parse(r);if(o&&o.loc&&o.bot&&N[o.start]&&N[o.goal]){if(!o.camp)o.camp={money:0,legs:1,start:0,log:[]};if(!o.setup)o.setup={air:false,evn:false,lm:{on:true,clue:"off",level:"mixed",plan:true}};S=o}}}catch(e){}}
+function load(){try{var r=localStorage.getItem(KEY);if(r){var o=JSON.parse(r);if(o&&o.loc&&o.bot&&placeOf(o.start)&&placeOf(o.goal)){if(!o.camp)o.camp={money:0,legs:1,start:0,log:[]};if(!o.setup)o.setup={air:false,evn:false,lm:{on:true,clue:"off",level:"mixed",plan:true}};S=o}}}catch(e){}}
 function save(){try{if(S)localStorage.setItem(KEY,JSON.stringify(S));else localStorage.removeItem(KEY)}catch(e){}}
 function say(t){S.log.push(t);if(S.log.length>40)S.log.shift()}
 function drop(k){var i=S.cards.indexOf(k);if(i>-1)S.cards.splice(i,1)}
@@ -364,14 +365,115 @@ function pick(k){
 var INCOME=500,NEXT_CAMP=null;
 var MIN_KM=1000,MAX_KM=2000;
 function isCity(i){return!N[i].l&&(N[i].s>=2||EXTRA_CITIES.indexOf(i)>-1)}
-function pickDest(from){var c=ids.filter(function(i){var d=hav(from,i);return i!=from&&isCity(i)&&d>=MIN_KM&&d<=MAX_KM});return c.length?c[Math.floor(Math.random()*c.length)]:null}
+// Destination candidates come from the gazetteer, so a city can be chosen even when its region is not loaded.
+// Places are kept in the same order as the place list, so the same seed gives the same destination.
+var GZ=null;
+function gazetteer(){
+ if(GZ)return GZ;
+ GZ=GAZETTEER.split(";").filter(Boolean).map(function(r){var p=r.split("|"),f=p[6]||"";return{id:p[0],la:+p[2],lo:+p[3],l:f.indexOf("l")>-1,s:+((f.match(/\d/)||[1])[0]),region:p[5]}});
+ var pos={};PLACE_ORDER.forEach(function(id,k){pos[id]=k});
+ GZ.sort(function(a,b){return(pos[a.id]===undefined?1e9:pos[a.id])-(pos[b.id]===undefined?1e9:pos[b.id])});
+ return GZ
+}
+function gzCity(g){return!g.l&&(g.s>=2||EXTRA_CITIES.indexOf(g.id)>-1)}
+// Direction of travel as a unit vector (east, north), so the campaign can keep heading the same general way
+function kmBetween(a1,o1,a2,o2){var r=Math.PI/180,x=(o2-o1)*r*Math.cos((a1+a2)/2*r),y=(a2-a1)*r;return Math.sqrt(x*x+y*y)*6371}
+// Position of any place, whether or not its region is loaded (the gazetteer always has it)
+var GZIDX=null;
+function placeOf(id){
+ if(N[id])return N[id];
+ if(!GZIDX){GZIDX={};gazetteer().forEach(function(g){GZIDX[g.id]=g})}
+ return GZIDX[id]||null
+}
+function unitVecP(A,B){var r=Math.PI/180,x=(B.lo-A.lo)*Math.cos((A.la+B.la)/2*r),y=B.la-A.la,n=Math.sqrt(x*x+y*y)||1;return[x/n,y/n]}
+function unitVec(a,b){return unitVecP(N[a],N[b])}
+var HEAD_LEGS=3,HEAD_SHARE=.75,HEAD_COS=.7;
+function pickDest(from,dirs){
+ var F=placeOf(from),c=gazetteer().filter(function(g){if(g.id==from||!gzCity(g))return false;var d=kmBetween(F.la,F.lo,g.la,g.lo);return d>=MIN_KM&&d<=MAX_KM}).map(function(g){return g.id});
+ if(!c.length)return null;
+ var H=[0,0];(dirs||[]).forEach(function(v){H[0]+=v[0];H[1]+=v[1]});
+ var hn=Math.sqrt(H[0]*H[0]+H[1]*H[1]);
+ if(hn>0.5&&Math.random()<HEAD_SHARE){
+  var on=c.filter(function(i){var u=unitVecP(F,placeOf(i));return(u[0]*H[0]+u[1]*H[1])/hn>=HEAD_COS});
+  if(on.length)c=on;
+ }
+ return c[Math.floor(Math.random()*c.length)]
+}
+
+// ---- On-demand regions: a region's map data is loaded when a route needs it, then the world is rebuilt from what is loaded.
+// Regions are only added, never removed, so places already on screen stay valid.
+var REGION_VARS={uk:"REGION_UK",fr:"REGION_FR",benelux:"REGION_BENELUX",de:"REGION_DE","alps-it":"REGION_ALPS_IT",es:"REGION_ES",scandinavia:"REGION_SCANDINAVIA",east:"REGION_EAST"};
+var LOADED_REGIONS={},REGION_SCRIPTS={};
+// Drop a region from memory: its places and links leave the world, and its script is removed. It loads again if needed.
+function unloadRegion(name){
+ var v=REGION_VARS[name];
+ if(REGION_SCRIPTS[name]){REGION_SCRIPTS[name].remove();delete REGION_SCRIPTS[name]}
+ if(v)try{delete window[v]}catch(e){window[v]=undefined}
+ delete LOADED_REGIONS[name];
+}
+function loadRegion(name){
+ var v=REGION_VARS[name];
+ if(!v)return Promise.reject(new Error("Unknown region "+name));
+ if(LOADED_REGIONS[name])return Promise.resolve();
+ return new Promise(function(res,rej){
+  if(window[v]!==undefined){LOADED_REGIONS[name]=1;return res()}
+  var s=document.createElement("script");s.src="data/regions/"+name+".js";REGION_SCRIPTS[name]=s;
+  s.onload=function(){if(window[v]!==undefined){LOADED_REGIONS[name]=1;res()}else rej(new Error("Region "+name+" did not load"))};
+  s.onerror=function(){rej(new Error("Could not load the "+name+" map data"))};
+  document.head.appendChild(s)
+ })
+}
+// Regions needed for a journey: those of the start and goal, the travel corridor, and a ring of neighbours
+// within rail and bus range of the corridor, so a stop next to a border still shows its links
+var RING_KM=650;
+function regionsFor(a,b){
+ var G=gazetteer(),A=null,B=null,out={},corridor=[];
+ G.forEach(function(g){if(g.id==a){A=g;out[g.region]=1}if(g.id==b){B=g;out[g.region]=1}});
+ if(!A||!B)return Object.keys(out);
+ var lim=corridorLim(kmBetween(A.la,A.lo,B.la,B.lo));
+ G.forEach(function(g){if(kmBetween(A.la,A.lo,g.la,g.lo)+kmBetween(g.la,g.lo,B.la,B.lo)<=lim){out[g.region]=1;corridor.push(g)}});
+ // Neighbours come from the precomputed adjacency table (data/adjacency.js), so this is a table read, not a scan of every place
+ if(typeof REGION_ADJ!=="undefined")Object.keys(out).forEach(function(r){(REGION_ADJ[r]||[]).forEach(function(n){out[n]=1})});
+ else G.forEach(function(g){if(out[g.region])return;for(var k=0;k<corridor.length;k++){if(kmBetween(corridor[k].la,corridor[k].lo,g.la,g.lo)<=RING_KM){out[g.region]=1;return}}});
+ return Object.keys(out)
+}
+// Rebuild the world from every region loaded so far
+function rebuildWorld(){
+ var rows=[];
+ Object.keys(LOADED_REGIONS).forEach(function(k){var v=window[REGION_VARS[k]];if(v)rows=rows.concat(v.split(";").filter(Boolean))});
+ var byId={};rows.forEach(function(r){byId[r.split("|")[0]]=r});
+ var list=PLACE_ORDER.filter(function(id){return byId[id]}).map(function(id){return byId[id]});
+ var have={};list.forEach(function(r){have[r.split("|")[0]]=1});
+ CROSSINGS=CROSSINGS_ALL.split("|").filter(function(s){var p=s.split(" ");return have[p[0]]&&have[p[1]]}).join("|");
+ PLACES=list.join(";");
+ loadWorld(PLACES);
+}
+var CROSSINGS_ALL=CROSSINGS;
+// Make sure the regions a race needs are loaded and the world includes them
+function raceReady(a,b){
+ var wanted=regionsFor(a,b),need=wanted.filter(function(r){return!LOADED_REGIONS[r]});
+ var drop=Object.keys(LOADED_REGIONS).filter(function(r){return wanted.indexOf(r)<0});
+ drop.forEach(unloadRegion);
+ return Promise.all(need.map(loadRegion)).then(function(){
+  if(need.length||drop.length||!ids.length)rebuildWorld()
+ })
+}
+// Start a race once its regions are ready. camp (optional) carries the campaign state into the new leg
+function startRace(a,b,air,evn,lm,camp){
+ return raceReady(a,b).then(function(){NEXT_CAMP=camp||null;return newRace(a,b,air,evn,lm)})
+}
 function begin(random){
  var a=document.getElementById("from"),b=document.getElementById("to"),air=false,evn=false,lm={on:true,clue:"off",level:"mixed",plan:true},x,y;
- if(random){x="lon";var t=0,ok=false;while(!ok&&t++<8){y=pickDest(x);ok=y&&newRace(x,y,air,evn,lm)}if(!ok){S=null;return render("Couldn't find a route. Try again.")}return render()}
- else{x=a.value;y=b.value}
+ if(random){
+  x="lon";var t=0;
+  var fail=function(err){if(err)console.warn(err);S=null;return render("Couldn't find a route. Try again.")};
+  var tryOne=function(){y=pickDest(x);if(!y)return fail();
+   return startRace(x,y,air,evn,lm).then(function(ok){if(ok)return render();if(t++<8)return tryOne();return fail()},fail)};
+  return tryOne()
+ }
+ x=a.value;y=b.value;
  if(x==y){S=null;return render("Choose two different places.")}
- if(!newRace(x,y,air,evn,lm))return render("No route found between those places.");
- render()
+ return startRace(x,y,air,evn,lm).then(function(ok){if(!ok)return render("No route found between those places.");render()},function(err){S=null;render("Could not load the map for that journey: "+(err&&err.message||err))})
 }
 // Continue the campaign: the next leg starts where you finished and goes to a random city in the distance band
 // Days: the campaign clock runs across legs. Arriving on day x: rest and explore on day x+1, leave 8am on day x+2.
@@ -380,13 +482,12 @@ function restHtml(){return"<p class='mute'>Arrived "+stamp(S.arrH||0)+". Rest an
 function campLogHtml(){var l=(S.camp&&S.camp.log)||[];if(!l.length)return"";return"<div class='panel'><h2>Campaign so far</h2><ol class='log'>"+l.map(function(e){return"<li>Leg "+e.leg+": "+esc(e.to)+", arrived "+e.arrived+"</li>"}).join("")+"</ol></div>"}
 function nextLeg(){
  if(!S||!S.camp)return;
- var from=S.goal,to=pickDest(from);
+ var from=S.goal,dirs=((S.camp.dirs||[]).concat([unitVec(S.start,S.goal)])).slice(-HEAD_LEGS),to=pickDest(from,dirs);
  if(!to){S=null;return render("No destination found. Start a new journey.")}
  var log=(S.camp.log||[]).concat([{leg:S.camp.legs,to:N[S.goal].n,arrived:stamp(S.arrH||0)}]),start=(arrDay()+1)*24;
- NEXT_CAMP={money:Math.max(0,S.cash),legs:S.camp.legs+1,start:start,log:log};
+ NEXT_CAMP={money:Math.max(0,S.cash),legs:S.camp.legs+1,start:start,log:log,dirs:dirs};
  var st=S.setup||{air:false,evn:false,lm:{on:true,clue:"off",level:"mixed",plan:true}};
- if(!newRace(from,to,st.air,st.evn,st.lm)){S=null;return render("Couldn't find a route. Start a new journey.")}
- render()
+ startRace(from,to,st.air,st.evn,st.lm,NEXT_CAMP).then(function(ok){if(!ok){S=null;return render("Couldn't find a route. Start a new journey.")}render()},function(err){S=null;render("Could not load the map: "+(err&&err.message||err))})
 }
 function reset(){LM.reset();S=null;render()}
 function rivalAt(){var b=S.bot,k=0;b.times.forEach(function(t,i){if(t<=S.h)k=i});return k==b.names.length-1?"has reached "+N[S.goal].n:"is at "+N[b.names[k]].n}
@@ -406,7 +507,7 @@ function lmHtml(){var r=S.lm;if(!r)return"";return"<p class='res'><b>Last mile: 
 function render(msg){
  save();var h="<h1>Cross-Channel race</h1>";
  if(!S){
-  var os=ids.slice().sort(function(a,b){return N[a].n<N[b].n?-1:1}).map(function(i){return"<option value='"+i+"'>"+N[i].n+"</option>"}).join("");
+  var os=GAZETTEER.split(";").filter(Boolean).map(function(r){var p=r.split("|");return{id:p[0],n:p[1]}}).sort(function(a,b){return a.n<b.n?-1:1}).map(function(g){return"<option value='"+g.id+"'>"+g.n+"</option>"}).join("");
   h+="<p class='sub'>You start in Trafalgar Square, London. Your destination is a random city 1,000 to 2,000 km away.</p><div class='panel'>"+(msg?"<p style='color:var(--bad)'>"+msg+"</p>":"")+"<div class='row' style='margin-top:12px'><button class='btn' onclick='begin(1)'>Start journey</button></div><details style='margin-top:14px'><summary class='mute'>Choose start and destination yourself</summary><label for='from' style='margin-top:10px'>From</label><select id='from'>"+os+"</select><label for='to'>To</label><select id='to'>"+os+"</select><button class='btn alt' onclick='begin()'>Start with these places</button></details></div>";
   document.getElementById("app").innerHTML=h;
   document.getElementById("from").value="lon";document.getElementById("to").value="rom";return}
@@ -441,7 +542,10 @@ function render(msg){
  h+="</ol></div><button class='link' onclick='if(confirm(\"End your campaign? Saved progress will be cleared.\"))reset()'>End campaign</button>";
  document.getElementById("app").innerHTML=h;drawMap();bindRouteHover();if(S&&S.phase=="lastmile"&&!S.over)LM.attach(document.getElementById("lm"));if(S&&S.phase=="routes")document.querySelectorAll("[data-route]").forEach(function(b){b.onclick=function(){chooseRoute(+b.dataset.route)}})
 }
-load();if(S&&S.phase=="lastmile"&&!S.over)startLM();render();
+// Startup: show the start screen straight away; if a campaign is saved, load its regions first, then resume it
+load();
+if(S){raceReady(S.start,S.goal).then(function(){if(S&&S.phase=="lastmile"&&!S.over)startLM();render()},function(err){S=null;render("Could not load the saved map: "+(err&&err.message||err))})}
+else render();
 window.addEventListener("resize",function(){drawMap()});
 
 // Safety net: if drawing the screen fails, show what happened and a way to restart, rather than a blank page.

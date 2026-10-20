@@ -1,0 +1,2 @@
+// Regions that border each other: a place in one is within 650 km of a place in the other
+var REGION_ADJ={"alps-it":["benelux","de","east","es","fr","uk"],"benelux":["alps-it","de","fr","scandinavia","uk"],"de":["alps-it","benelux","east","fr","scandinavia","uk"],"east":["alps-it","de","fr","scandinavia"],"es":["alps-it","fr"],"fr":["alps-it","benelux","de","east","es","uk"],"scandinavia":["benelux","de","east"],"uk":["alps-it","benelux","de","fr"]};
