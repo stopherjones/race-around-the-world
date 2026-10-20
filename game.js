@@ -185,7 +185,7 @@ function boardHtml(){
 }
 // Destination introductions: generated live through the Groq proxy (Cloudflare Worker), one request per city, cached for the session
 var FLAVOUR_URL="https://groq-proxy.chrisjones59.workers.dev/chat/completions",FLAVOUR_MODEL="openai/gpt-oss-120b",FLAV={};
-function flavourPrompt(c){return"You are producing a travel TV show - provide a short, light, informative voiceover script introducing "+c+". Your response should start \""+c+"\", then cover its geographic location, history and current significance."}
+function flavourPrompt(c){return"You are producing a travel TV show - provide a short (around 100 words), light, informative voiceover script introducing "+c+". Your response should start \""+c+"\", then cover its geographic location, history and current significance."}
 function flavourFor(c){
  if(FLAV[c])return FLAV[c];
  FLAV[c]=fetch(FLAVOUR_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:FLAVOUR_MODEL,messages:[{role:"user",content:flavourPrompt(c)}]})})
