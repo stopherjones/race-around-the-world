@@ -183,9 +183,25 @@ function boardHtml(){
  }).join("");
  return"<div class='panel'><h2>Destination board</h2><p class='mute'>Key services on each route to "+esc(N[S.goal].n)+". Timetables are fixed, so the same services are open to everyone.</p></div>"+rows
 }
+// Destination introductions: generated live through the Groq proxy (Cloudflare Worker), one request per city, cached for the session
+var FLAVOUR_URL="https://groq-proxy.chrisjones59.workers.dev/chat/completions",FLAVOUR_MODEL="openai/gpt-oss-120b",FLAV={};
+function flavourPrompt(c){return"You are producing a travel TV show - provide a short, light, informative voiceover script introducing "+c+". Your response should start \""+c+"\", then cover its geographic location, history and current significance."}
+function flavourFor(c){
+ if(FLAV[c])return FLAV[c];
+ FLAV[c]=fetch(FLAVOUR_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:FLAVOUR_MODEL,messages:[{role:"user",content:flavourPrompt(c)}]})})
+  .then(function(r){if(!r.ok)throw new Error("status "+r.status);return r.json()})
+  .then(function(j){var t=((j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content)||"").replace(/\*\*/g,"").trim();if(!t)throw new Error("empty reply");return t})
+  .catch(function(e){delete FLAV[c];throw e});
+ return FLAV[c]
+}
+function fillFlavour(){
+ var el=document.getElementById("flavour-text");if(!el||!S||S.phase!=="plan")return;
+ var key=S.goal,c=N[key].n;
+ flavourFor(c).then(function(t){var cur=document.getElementById("flavour-text");if(cur&&S&&S.goal===key)cur.textContent=t},function(){var cur=document.getElementById("flavour-text");if(cur&&S&&S.goal===key)cur.textContent="An introduction isn't available right now."})
+}
 function planIntro(){
  var n=N[S.goal].n;
- return"<div class='panel'><h2>Destination: "+esc(n)+"</h2><p class='flavour'>Flavour text for "+esc(n)+" will appear here.</p>"+(S.plan?"":"<p class='mute' style='margin:0'>Where is "+esc(n)+"? Tap the map to drop a pin. The further off you are, the more time you lose working out how to get there.</p>")+"</div>"
+ return"<div class='panel'><h2>Destination: "+esc(n)+"</h2><p class='flavour' id='flavour-text'>Loading an introduction to "+esc(n)+"…</p>"+(S.plan?"":"<p class='mute' style='margin:0'>Where is "+esc(n)+"? Tap the map to drop a pin. The further off you are, the more time you lose working out how to get there.</p>")+"</div>"
 }
 function planPanelBase(){
  return"<div class='panel'>"+(S.plan?"":"<div class='row' style='margin-top:0'><button class='btn' id='planguess' onclick='planGuess()'"+(PL.guess?"":" disabled")+">Lock in guess</button></div>")+"<div id='planres'>"+(S.plan?planResHtml():"")+"</div><div id='planfail' hidden><p class='mute'>The map couldn't load.</p><button class='btn alt' onclick='planDone(1)'>Skip planning</button></div></div>"
@@ -511,7 +527,7 @@ function begin(random){
  var a=document.getElementById("from"),b=document.getElementById("to"),air=false,evn=false,lm={on:true,clue:"off",level:"mixed",plan:true},x,y;
  if(random){
   x="lon";var t=0;
-  var fail=function(err){if(err)console.warn(err);S=null;return render("Couldn't find a route. Try again.")};
+  var fail=function(err){if(err)console.warn(err);S=null;return render(err&&err.message?"Could not load the map: "+err.message+". Check that every file in data/regions/ is in place.":"Couldn't find a route. Try again.")};
   var tryOne=function(){y=pickDest(x);if(!y)return fail();
    return startRace(x,y,air,evn,lm).then(function(ok){if(ok)return render();if(t++<8)return tryOne();return fail()},fail)};
   return tryOne()
@@ -585,7 +601,7 @@ function render(msg){
  h+="<div class='panel'><h2>Travel log</h2><ol class='log' reversed>";
  S.log.slice(-6).reverse().forEach(function(l){h+="<li>"+l+"</li>"});
  h+="</ol></div><button class='link' onclick='if(confirm(\"End your campaign? Saved progress will be cleared.\"))reset()'>End campaign</button>";
- document.getElementById("app").innerHTML=h;drawMap();bindRouteHover();bindModes();if(S&&(S.phase=="lastmile"||S.phase=="interim")&&!S.over)LM.attach(document.getElementById("lm"));if(S&&S.phase=="routes")document.querySelectorAll("[data-route]").forEach(function(b){b.onclick=function(){chooseRoute(+b.dataset.route)}})
+ document.getElementById("app").innerHTML=h;drawMap();bindRouteHover();bindModes();fillFlavour();if(S&&(S.phase=="lastmile"||S.phase=="interim")&&!S.over)LM.attach(document.getElementById("lm"));if(S&&S.phase=="routes")document.querySelectorAll("[data-route]").forEach(function(b){b.onclick=function(){chooseRoute(+b.dataset.route)}})
 }
 // Startup: show the start screen straight away; if a campaign is saved, load its regions first, then resume it
 load();
