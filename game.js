@@ -1,4 +1,4 @@
-var VT=20,NOISE=.35,KEY="route-generator-v4",S=null,IDX={U:1.15,F:1,B:1.05,N:1.05,G:1.05,S:.85,T:.95,C:1.6,R:1.1,D:1.3,E:.7,K:.75,Y:.6};
+var VT=20,NOISE=.35,KEY="route-generator-v4",S=null,IDX={U:1.15,F:1,B:1.05,N:1.05,G:1.05,S:.85,T:.95,C:1.6,R:1.1,D:1.3,E:.7,K:.75,Y:.6,M:.7,V:.65};
 var N={};
 function loadWorld(str){N={};str.split(";").forEach(function(s){var p=s.split("|"),f=p[5];N[p[0]]={n:p[1],la:+p[2],lo:+p[3],c:p[4],r:f.indexOf("r")>-1,a:f.indexOf("a")>-1,p:f.indexOf("p")>-1,h:f.indexOf("h")>-1,l:f.indexOf("l")>-1,s:+(f.match(/\d/)||[1])[0]}});ids=Object.keys(N);towns=ids.filter(function(i){return!N[i].l});E=[];ADJ={};seen={};buildLinks()}
 var MODE={tube:"metro",bus:"bus",coach:"coach",rail:"train",hsr:"fast train",ferry:"ferry",air:"flight"},GRP={rail:"Trains",hsr:"Fast trains",coach:"Coaches",bus:"Buses",ferry:"Ferries",air:"Flights",tube:"Metro"},ORD=["rail","hsr","coach","bus","ferry","air","tube"];
@@ -183,8 +183,12 @@ function boardHtml(){
  }).join("");
  return"<div class='panel'><h2>Destination board</h2><p class='mute'>Key services on each route to "+esc(N[S.goal].n)+". Timetables are fixed, so the same services are open to everyone.</p></div>"+rows
 }
+function planIntro(){
+ var n=N[S.goal].n;
+ return"<div class='panel'><h2>Destination: "+esc(n)+"</h2><p class='flavour'>Flavour text for "+esc(n)+" will appear here.</p>"+(S.plan?"":"<p class='mute' style='margin:0'>Where is "+esc(n)+"? Tap the map to drop a pin. The further off you are, the more time you lose working out how to get there.</p>")+"</div>"
+}
 function planPanelBase(){
- return"<div class='panel'><h2>Planning in "+(S.start=="lon"?"Trafalgar Square":esc(N[S.start].n))+"</h2><p class='big' style='font-size:1.5rem'>Where is "+esc(N[S.goal].n)+"?</p>"+(S.plan?"":"<p class='mute' style='margin:0 0 10px'>Tap the map to drop a pin. The further off you are, the more time you lose working out how to get there.</p><div class='row' style='margin-top:10px'><button class='btn' id='planguess' onclick='planGuess()'"+(PL.guess?"":" disabled")+">Lock in guess</button></div>")+"<div id='planres'>"+(S.plan?planResHtml():"")+"</div><div id='planfail' hidden><p class='mute'>The map couldn't load.</p><button class='btn alt' onclick='planDone(1)'>Skip planning</button></div></div>"
+ return"<div class='panel'>"+(S.plan?"":"<div class='row' style='margin-top:0'><button class='btn' id='planguess' onclick='planGuess()'"+(PL.guess?"":" disabled")+">Lock in guess</button></div>")+"<div id='planres'>"+(S.plan?planResHtml():"")+"</div><div id='planfail' hidden><p class='mute'>The map couldn't load.</p><button class='btn alt' onclick='planDone(1)'>Skip planning</button></div></div>"
 }
 function planResHtml(){var p=S.plan;return"<p>You were "+Math.round(p.km)+" km off: "+mins(p.lost)+" lost.</p><button class='btn' onclick='planDone()'>Start travelling</button>"}
 function planGuess(){
@@ -256,7 +260,7 @@ function journalHtml(){
  var p=S.plan,lm=S.lm,pl=p?(p.skipped?"skipped":mins(p.lost)):"\u2013",ll2=lm?(lm.skipped?"skipped":mins(lm.lost)):"\u2013";
  return"<div class='panel jrnl-wrap'><h2>Journal</h2><div class='jrnl'>"+jcol(S.path,S.modes,S.times,S.nights,"Your journey")+"</div><div class='jsum'>"+jrow("Planning",pl,"")+jrow("Last mile",ll2,"")+jrow("Total time",mins(S.h),"target "+mins(S.target||0))+jrow("Spend","\u00a3"+Math.round(S.spent),"")+"</div></div>"
 }
-function mapPanel(){return"<div class='panel'><h2>Map</h2><div class='zc'><button onclick='mfit()'>Fit journey</button></div></div>"}
+function mapPanel(){return""}
 function mfit(){if(MJ.p)MJ.p.then(function(map){if(map&&S)fitJourney(map)})}
 var TN={r:"train station",b:"bus station",f:"ferry terminal",a:"airport"},TV={r:"Train station",b:"Bus station",f:"Ferry terminal",a:"Airport"};
 function grp(m){return{tube:"r",rail:"r",hsr:"r",bus:"b",coach:"b",ferry:"f",air:"a"}[m]}
@@ -443,7 +447,7 @@ function pickDest(from,dirs){
 
 // ---- On-demand regions: a region's map data is loaded when a route needs it, then the world is rebuilt from what is loaded.
 // Regions are only added, never removed, so places already on screen stay valid.
-var REGION_VARS={uk:"REGION_UK",fr:"REGION_FR",benelux:"REGION_BENELUX",de:"REGION_DE","alps-it":"REGION_ALPS_IT",es:"REGION_ES",scandinavia:"REGION_SCANDINAVIA",east:"REGION_EAST",balkans:"REGION_BALKANS"};
+var REGION_VARS={uk:"REGION_UK",fr:"REGION_FR",benelux:"REGION_BENELUX",de:"REGION_DE","alps-it":"REGION_ALPS_IT",es:"REGION_ES",scandinavia:"REGION_SCANDINAVIA",east:"REGION_EAST",balkans:"REGION_BALKANS","north-africa":"REGION_NORTH_AFRICA",turkey:"REGION_TURKEY"};
 var LOADED_REGIONS={},REGION_SCRIPTS={};
 // Drop a region from memory: its places and links leave the world, and its script is removed. It loads again if needed.
 function unloadRegion(name){
@@ -546,16 +550,16 @@ function startLM(){
 }
 function lmHtml(){var r=S.lm;if(!r)return"";return"<p class='res'><b>Last mile: "+(r.skipped?"skipped":esc(r.title)+" ("+r.distText+" off)")+"</b><span>You lost "+mins(r.lost)+".</span></p>"}
 function render(msg){
- save();var h="<h1>Cross-Channel race</h1>";
+ save();var h="<h1>Role Around the World</h1>";
  if(!S){
   var os=GAZETTEER.split(";").filter(Boolean).map(function(r){var p=r.split("|");return{id:p[0],n:p[1]}}).sort(function(a,b){return a.n<b.n?-1:1}).map(function(g){return"<option value='"+g.id+"'>"+g.n+"</option>"}).join("");
-  h+="<p class='sub'>You start in Trafalgar Square, London. Your destination is a random city 1,000 to 2,000 km away.</p><div class='panel'>"+(msg?"<p style='color:var(--bad)'>"+msg+"</p>":"")+"<div class='row' style='margin-top:12px'><button class='btn' onclick='begin(1)'>Start journey</button></div></div>";
+  h+="<p class='sub'>You start in Trafalgar Square with \u00a3350. Each leg takes you to a random city 1,000 to 2,000 km away. Work out where it is on the map, choose a route, travel, and finish with a photo challenge. Arrive by the target time for a bonus. Money you keep carries over, so a campaign can run for as long as you like.</p><div class='panel'>"+(msg?"<p style='color:var(--bad)'>"+msg+"</p>":"")+"<div class='row' style='margin-top:12px'><button class='btn' onclick='begin(1)'>Start journey</button></div><p class='mute' style='margin:14px 0 0'><a href='rules.html'>Rules and guide</a></p></div>";
   document.getElementById("app").innerHTML=h;
   return}
- h+="<p class='sub'>Score is hours plus \u00a31 per three minutes (\u00a320 = 1 h). Lower wins.</p>";
  var st=status();
- h+="<div class='hdr'><div class='r1'><span><b>"+clk(S.h)+"</b></span><span><b>\u00a3"+S.cash+"</b> of \u00a3"+S.budget+"</span><span class='st'><span aria-hidden='true'>"+st[0]+"</span> "+st[1]+"</span></div><div class='r2'><div><small>From</small>"+(S.start=="lon"?"Trafalgar Square":N[S.start].n)+"</div><div class='cur'><small>Now</small>"+N[S.loc].n+"</div><div><small>To "+(S.phase=="plan"&&!S.plan||S.phase=="routes"&&!S.route?"?":arrow(S.loc,S.goal))+"</small>"+N[S.goal].n+"</div></div><div class='rv'>Target "+stamp(S.target||0)+"</div></div>";
- if(S)h+="<div class='row tight modebar'><button class='btn alt' data-mode='streets'>Streets</button><button class='btn alt' data-mode='sat'>Satellite</button><button class='btn alt' data-mode='hybrid'>Hybrid</button></div>";h+="<div id='sharedmap' class='smap'></div>";
+ h+="<div class='hdr'><div class='r1'><span><b>"+clk(S.h)+"</b></span><span><b>\u00a3"+Math.round(S.cash)+"</b></span><span class='st'><span aria-hidden='true'>"+st[0]+"</span> "+st[1]+"</span></div><div class='r2'><div><small>From</small>"+(S.start=="lon"?"Trafalgar Square":N[S.start].n)+"</div><div class='cur'><small>Now</small>"+N[S.loc].n+"</div><div><small>To "+(S.phase=="plan"&&!S.plan||S.phase=="routes"&&!S.route?"?":arrow(S.loc,S.goal))+"</small>"+N[S.goal].n+"</div></div><div class='rv'>Target "+stamp(S.target||0)+"</div></div>";
+ if(S&&S.phase=="plan")h+=planIntro();
+ if(S)h+="<div class='row tight modebar'><div class='modes'><button class='btn alt' data-mode='streets'>Streets</button><button class='btn alt' data-mode='sat'>Satellite</button><button class='btn alt' data-mode='hybrid'>Hybrid</button></div><button class='btn alt' onclick='mfit()'>Fit journey</button></div>";h+="<div id='sharedmap' class='smap'></div>";
  if(S.over){
   var you={names:S.path,modes:S.modes,nights:S.nights,h:S.h,c:S.spent,score:S.h+S.spent/VT},m=S.over=="broke"?"Stranded: you can't afford any onward fare from "+N[S.loc].n+".":(S.bonus?"You arrived on time.":"You arrived after the target time.");
   h+="<div class='panel'><p class='big'>"+m+"</p>"+(S.over=="done"||S.path.length>1?journalHtml():"")+"<p class='mute'>Leg "+S.camp.legs+" complete. You carry \u00a3"+Math.max(0,Math.round(S.cash))+" into the next leg"+(S.bonus?", including the \u00a3"+BONUS+" on-time bonus":"")+", plus \u00a3"+INCOME+" income for the next leg.</p>"+restHtml()+campLogHtml()+"<div class='row'><button class='btn' onclick='nextLeg()'>Next leg</button><button class='btn alt' onclick='if(confirm(\"End your campaign? Saved progress will be cleared.\"))reset()'>End campaign</button></div></div>"+mapPanel()
