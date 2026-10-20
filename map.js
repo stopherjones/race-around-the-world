@@ -12,7 +12,7 @@ function buildStyle(st){
  var out=JSON.parse(JSON.stringify(st)),names=[],base=[],labels=[];
  out.layers=out.layers.filter(function(l){
   if(l.type=="background")return true;
-  if(l.type=="symbol"){if(l["source-layer"]=="transportation_name"){names.push(l.id);return true}if(l["source-layer"]=="place"||l["source-layer"]=="water_name"||l["source-layer"]=="poi"){l.layout=l.layout||{};l.layout.visibility="none";if(l["source-layer"]=="poi"){l.minzoom=Math.max(l.minzoom||0,15)}else if(l["source-layer"]=="place"){l.minzoom=Math.min(l.minzoom===undefined?99:l.minzoom,11)}labels.push(l.id);return true}return false}
+  if(l.type=="symbol"){if(l["source-layer"]=="transportation_name"){names.push(l.id);return true}if(l["source-layer"]=="place"||l["source-layer"]=="water_name"||l["source-layer"]=="poi"){l.layout=l.layout||{};l.layout.visibility="none";if(l["source-layer"]=="poi"){l.minzoom=Math.max(l.minzoom||0,12)}else if(l["source-layer"]=="place"){l.minzoom=Math.min(l.minzoom===undefined?99:l.minzoom,6)}labels.push(l.id);return true}return false}
   base.push(l.id);return true});
  out.sources=out.sources||{};
  out.sources.sat={type:"raster",tiles:CONFIG.SAT.tiles,tileSize:256,maxzoom:CONFIG.SAT.maxzoom,attribution:CONFIG.SAT.attribution};
@@ -47,5 +47,5 @@ function buildStyle(st){
   return initP
  }
  function attach(c){if(el&&c){c.appendChild(el);if(map)setTimeout(function(){map.resize()},30)}}
- return{load:load,init:init,attach:attach,setMode:setMode,setLabels:function(on){labelsOn=on;setMode(mode)},built:function(){return built},map:function(){return map}}
+ return{load:load,init:init,attach:attach,setMode:setMode,mode:function(){return mode},setLabels:function(on){labelsOn=on;setMode(mode)},built:function(){return built},map:function(){return map}}
 })();
