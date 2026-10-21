@@ -100,7 +100,7 @@ function tm(h){var t=Math.round(480+h*60)%1440;return pad(Math.floor(t/60))+":"+
 function stayCost(k,n){return Math.round([0,22,65][k]*IDX[N[n].c]*[0,.9,1.1,1.4][N[n].s])}
 function hpush(a,x){a.push(x);var i=a.length-1;while(i>0){var p=(i-1)>>1;if((a[p].f||a[p].w)<=(a[i].f||a[i].w))break;var t=a[p];a[p]=a[i];a[i]=t;i=p}}
 function hpop(a){var t=a[0],l=a.pop();if(a.length){a[0]=l;var i=0,n=a.length;for(;;){var c=2*i+1;if(c>=n)break;if(c+1<n&&(a[c+1].f||a[c+1].w)<(a[c].f||a[c].w))c++;if((a[i].f||a[i].w)<=(a[c].f||a[c].w))break;var u=a[i];a[i]=a[c];a[c]=u;i=c}}return t}
-function mkRooms(){var n=N[S.loc],p=[[0,.4,.7,.9][n.s],[0,.55,.85,.97][n.s]],k=IDX[n.c]*[0,.9,1.1,1.4][n.s],r=[];[["Hostel bed",22,0],["Hotel room",65,1]].forEach(function(t,i){if(Math.random()<p[i])r.push({n:t[0],c:Math.round(t[1]*k*(.8+Math.random()*.5)),q:t[2]})});return r}
+function mkRooms(){var n=N[S.loc],pav=[0,.5,.8,.95][n.s],base=45*IDX[n.c]*[0,.9,1.1,1.4][n.s];if(Math.random()>=pav)return[];var c=Math.round(base*(.5+Math.random()*1.5));return[{n:"Find a room",c:c,q:c>=base?1:0}]}
 function ll(n){return[N[n].lo,N[n].la]}
 // ---- Journey map: overlay layers on the shared MapLibre map (map.js)
 var MJ={p:null,fit:""},JL=["j-ferry","j-nodes","j-opt","j-riv","j-me","j-opts","j-optlab","j-pts","j-ptlab","j-routes","j-routes-lab"];
@@ -147,7 +147,8 @@ function updateJourney(map){
 function drawMap(){
  var box=document.getElementById("sharedmap");if(!box||!S)return;
  MJ.p=MJ.p||MAPX.init(box).catch(function(e){MJ.p=null;console.warn("Map failed",e);var pf=document.getElementById("planfail");if(pf)pf.hidden=false});
- MJ.p.then(function(map){var b=document.getElementById("sharedmap");if(!map||!b||!S)return;if(S.phase!="lastmile"&&S.phase!="interim")MAPX.setLabels(false);MAPX.attach(b);setupJourney(map);if(S.phase=="plan")planMap(map);else{planClean(map);updateJourney(map)}})
+ MJ.p.then(function(map){var b=document.getElementById("sharedmap");if(!map||!b||!S)return;if(S.phase!="lastmile"&&S.phase!="interim")MAPX.setLabels(false);if(MJ.resetView&&S.phase!="lastmile"&&S.phase!="interim"){map.setMaxBounds(null);map.setMinZoom(0);MJ.fit="";MJ.resetView=false}
+ MAPX.attach(b);setupJourney(map);if(S.phase=="plan")planMap(map);else{planClean(map);updateJourney(map)}})
 }
 // ---- Planning phase: guess where the destination is on the unlabelled map; the error becomes time lost before you leave
 var PL={on:false,pin:null,truth:null,guess:null,fn:null},PLAN_KM_PER_H=150,PLAN_MAX_H=8;
@@ -167,7 +168,7 @@ function planClean(map){
 }
 // Route colours: the same as the route lines on the map
 function routeColour(label){return label=="Fast"?"#1b6f63":label=="Thrifty"?"#8a6d1f":"#7a3e9d"}
-function planPanel(){return planPanelBase()+boardHtml()}
+function planPanel(){return planPanelBase()+(S.plan?boardHtml():"")}
 // Destination board: the key services on each route type, fixed for the day, so every traveller sees the same options
 function legTxt(e,from,to){
  var t=(MODE[e.m]||e.m)+" "+N[from].n+" to "+N[to].n;
@@ -185,7 +186,7 @@ function boardHtml(){
 }
 // Destination introductions: generated live through the Groq proxy (Cloudflare Worker), one request per city, cached for the session
 var FLAVOUR_URL="https://groq-proxy.chrisjones59.workers.dev/chat/completions",FLAVOUR_MODEL="openai/gpt-oss-120b",FLAV={};
-function flavourPrompt(c){return"You are producing a travel TV show - provide a short (around 100 words), light, informative voiceover script introducing "+c+". Your response should start \""+c+"\", then cover its geographic location, history and current significance."}
+function flavourPrompt(c){return"You are producing a travel TV show - provide a short, light, informative voiceover script introducing "+c+". Your response should start \""+c+"\", then cover its geographic location, history and current significance. Keep it to around 100 words."}
 function flavourFor(c){
  if(FLAV[c])return FLAV[c];
  FLAV[c]=fetch(FLAVOUR_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:FLAVOUR_MODEL,messages:[{role:"user",content:flavourPrompt(c)}]})})
@@ -211,7 +212,7 @@ function planGuess(){
  if(S.phase!="plan"||S.plan||!PL.guess)return;
  var t=ll(S.goal),km=kmc(PL.guess,t);
  S.plan={km:km,lost:planLost(km)};
- document.getElementById("planguess").disabled=true;document.getElementById("planres").innerHTML=planResHtml();
+ if(document.getElementById("planguess"))document.getElementById("planguess").hidden=true;document.getElementById("planres").innerHTML=planResHtml();
  var g=PL.guess;
  MJ.p&&MJ.p.then(function(map){if(!map)return;PL.truth=new maplibregl.Marker({color:"#2e9e4f"}).setLngLat(t).addTo(map);
   map.addSource("p-miss",{type:"geojson",data:lnf([g,t])});map.addLayer({id:"p-miss",type:"line",source:"p-miss",paint:{"line-color":"#d0432b","line-width":3,"line-dasharray":[2,2]}});
@@ -221,7 +222,7 @@ function planDone(skip){
  if(S.phase!="plan")return;
  if(!S.plan){if(!skip)return;S.plan={km:0,lost:0,rkm:0,rl:0,skipped:1}}
  var p=S.plan;S.h+=p.lost;
- S.phase="routes";S.opts=routeOptions(S.budget);say(p.skipped?"Planning skipped.":"Planning: "+Math.round(p.km)+" km off, "+mins(p.lost)+" lost before leaving.");render()
+ S.phase="routes";S.departed=0;S.opts=routeOptions(S.budget);say(p.skipped?"Planning skipped.":"Planning: "+Math.round(p.km)+" km off, "+mins(p.lost)+" lost before leaving.");render()
 }
 function planHtml(){var p=S.plan;if(!p||p.skipped)return"";return"<p class='res'><b>Planning: "+Math.round(p.km)+" km off</b><span>You lost "+mins(p.lost)+".</span></p>"}
 // ---- Route cards: three descriptions, revealed only as sentences. Costs, hotels and times appear after you pick.
@@ -259,6 +260,12 @@ function bindRouteHover(){
  document.querySelectorAll("[data-route]").forEach(function(b){var i=+b.dataset.route;b.onpointerenter=b.onfocus=function(){routeHL(i)}})
 }
 function routeHL(i){S.hl=i;if(MJ.p)MJ.p.then(function(m){if(m&&S&&S.phase=="routes")updateJourney(m)})}
+function departNeeded(){return!!(S&&S.phase==="routes"&&!S.departed&&S.loc===S.start&&terms(S.loc).length>1)}
+function departPanel(){
+ var b=terms(S.loc).map(function(g){return"<button class='card' onclick='chooseDepart(\""+g+"\")'><b>"+TV[g]+"</b><span>Set off from the "+TN[g]+" in "+esc(N[S.loc].n)+".</span></button>"}).join("");
+ return"<div class='panel'><h2>Where to from "+esc(N[S.loc].n)+"?</h2><p class='mute' style='margin:0 0 10px'>Choose how to leave. The routes depend on where you start.</p>"+b+"</div>"
+}
+function chooseDepart(g){if(!S||S.phase!=="routes")return;S.term=g;S.departed=1;S.opts=routeOptions(S.budget);S.target=targetFor(routePool(S.budget),S.opt);render()}
 function chooseRoute(i){
  if(S.phase!="routes"||!S.opts||!S.opts[i])return;
  var r=S.opts[i];S.route=r;S.phase="move";S.plan_steps=r.steps;
@@ -403,7 +410,7 @@ function interimLM(){
  say(clk(S.h)+": Stopped in "+N[S.loc].n+" for last-mile work ("+INTERIM_HOURS+" h).");
  startInterimLM();render()
 }
-function startInterimLM(){
+function startInterimLM(){MJ.resetView=true;
  var n=N[S.loc];
  MAPX.setLabels(true);LM.start({name:n.n,lat:n.la,lon:n.lo,landmark:false,level:"mixed",clueMode:"off",interim:true},function(r){
   var pay=r.skipped?0:interimPay(r.distM);
@@ -558,14 +565,22 @@ function res(l,r){return"<p class='res'><b>"+l+": "+r.h.toFixed(1)+" h, \u00a3"+
 
 function mins(h){var m=Math.round(h*60);return m<60?m+" min":Math.floor(m/60)+" h "+(m%60)+" min"}
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
-function startLM(){
+function startLM(){MJ.resetView=true;
  var g=N[S.goal];if(MJ.p)MJ.p.then(function(m){if(m)jvis(m,false)});
  MAPX.setLabels(true);LM.start({name:g.n,lat:g.la,lon:g.lo,landmark:g.l,level:S.lmLevel||"mixed",clueMode:"off"},function(r){
   LM.reset();S.lm=r;S.h+=r.lost;settleBonus();S.over="done";S.phase="move";
   say(clk(S.h)+": Last mile: "+(r.skipped?"skipped.":r.title+", "+r.distText+" off, "+mins(r.lost)+" lost."));render()})
 }
 function lmHtml(){var r=S.lm;if(!r)return"";return"<p class='res'><b>Last mile: "+(r.skipped?"skipped":esc(r.title)+" ("+r.distText+" off)")+"</b><span>You lost "+mins(r.lost)+".</span></p>"}
+// Stranded: nothing at this stop can be paid for, including a cheaper change of terminal
+function stranded(){
+ if(!S||S.over||S.phase!=="move")return false;
+ var links=opts(1);
+ if(links.some(function(o){return o.c<=S.cash}))return false;
+ return !terms(S.loc).some(function(g){return g!==S.term&&xf(S.loc,S.term,g).c<=S.cash})
+}
 function render(msg){
+ if(stranded())S.over="broke";
  save();var h="<h1>Role Around the World</h1>";
  if(!S){
   var os=GAZETTEER.split(";").filter(Boolean).map(function(r){var p=r.split("|");return{id:p[0],n:p[1]}}).sort(function(a,b){return a.n<b.n?-1:1}).map(function(g){return"<option value='"+g.id+"'>"+g.n+"</option>"}).join("");
@@ -582,7 +597,7 @@ function render(msg){
  }else{
 
   if(S.cards.length)h+="<p class='hand'>Carrying: "+S.cards.map(function(k){return CARDS[k][0]}).join(", ")+"</p>";
-  if(S.phase=="lastmile"||S.phase=="interim")h+="<div class='panel'><h2>"+(S.phase=="interim"?"Last-mile work":"Last mile")+"</h2><div id='lm'></div></div>";else if(S.phase=="plan")h+=planPanel();else if(S.phase=="routes")h+=routesPanel()+mapPanel();else h+=mapPanel();
+  if(S.phase=="lastmile"||S.phase=="interim")h+="<div class='panel'><h2>"+(S.phase=="interim"?"Last-mile work":"Last mile")+"</h2><div id='lm'></div></div>";else if(S.phase=="plan")h+=planPanel();else if(S.phase=="routes")h+=(departNeeded()?departPanel():routesPanel())+mapPanel();else h+=mapPanel();
   if(S.phase=="lastmile"||S.phase=="interim"||S.phase=="plan"||S.phase=="routes"){}else if(S.phase=="stay"){var po=opts()[S.pend],ss=sched(po,S.loc,S.h);h+="<div class='panel'><h2>No service until "+tm(ss.dep)+"</h2><p style='margin:0 0 10px'>Where will you sleep in "+N[S.loc].n+"?</p>";S.rooms.forEach(function(x,k){h+="<button class='card' onclick='stay("+k+")'"+(x.c>S.cash?" disabled":"")+"><b>"+x.n+", \u00a3"+x.c+"</b><span>"+(x.q?"A proper night's rest.":"Cheap, but you may sleep badly.")+"</span></button>"});if(!S.rooms.length)h+="<p style='margin:0 0 10px'>No rooms are free in town tonight.</p><button class='card' onclick='stay(-1)'><b>Spend the night at the station</b><span>Free, but you will be tired: 1 h lost on the next leg.</span></button>";h+="<button class='link' onclick='S.phase=\"move\";S.pend=null;render()'>Choose a different option</button></div>"}else if(S.phase=="draft"){
    h+="<div class='panel'><h2>Pick one to take with you</h2>";
    S.draft.forEach(function(k){h+="<button class='card' onclick=\"pick('"+k+"')\"><b>"+CARDS[k][0]+"</b><span>"+CARDS[k][1]+"</span></button>"});

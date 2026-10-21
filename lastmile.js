@@ -144,14 +144,14 @@ function start(cfg,onDone){
   h.hidden=false;h.textContent="A local says"+(lm.desc?": it's a "+lm.desc.replace(/^[A-Z]/,function(c){return c.toLowerCase()}):"")+(lm.desc?", ":": ")+"about "+(m<300?"right here in the area":(m/1000).toFixed(1)+" km "+bearingWord(R.cfg.lat,R.cfg.lon,lm.lat,lm.lon)+" of the centre")+"."
  }
  function guess(){
-  if(!R||R.done||!pin||!R.lm)return;R.done=true;$("guess").disabled=true;$("hintbtn").disabled=true;
+  if(!R||R.done||!pin||!R.lm)return;R.done=true;$("guess").disabled=true;$("hintbtn").disabled=true;$("guess").hidden=true;$("hintbtn").hidden=true;
   var t=R.lm,m=hav(pin.lat,pin.lng,t.lat,t.lon),extra=(R.hinted?HINT_H:0)+R.cost,mine=lostHours(m)+extra;
   truthMk=new maplibregl.Marker({color:"#2e9e4f"}).setLngLat([t.lon,t.lat]).addTo(map);
   map.addSource("miss",{type:"geojson",data:{type:"Feature",geometry:{type:"LineString",coordinates:[[pin.lng,pin.lat],[t.lon,t.lat]]}}});
   map.addLayer({id:"miss",type:"line",source:"miss",paint:{"line-color":"#d0432b","line-width":3,"line-dasharray":[2,2]}});
   var b=new maplibregl.LngLatBounds([pin.lng,pin.lat],[pin.lng,pin.lat]);b.extend([t.lon,t.lat]);map.fitBounds(b,{padding:70,maxZoom:18,duration:800});
   var link="https://en.wikipedia.org/wiki/"+encodeURIComponent(t.title.replace(/ /g,"_")),r=$("result");r.hidden=false;
-  r.innerHTML="<p class='big2'>"+tier(m)+"</p><p>It was <b>"+esc(t.title)+"</b> (<a href='"+esc(link)+"' target='_blank' rel='noopener'>article, photo credit and licence</a>).</p><p>"+(R.cfg.interim?"You were "+distText(m)+" off, you worked for "+INTERIM_HOURS+" hours and earned \u00a3"+interimPay(m):"You were "+distText(m)+" off: "+mins(mine)+" lost"+(extra>0?" (including "+mins(extra)+" on clues)":""))+".</p><div class='row'><button class='btn' id='lmdone'>Continue</button></div>";
+  r.innerHTML="<p class='big2'>"+(R.cfg.interim?"Good work":tier(m))+"</p><p>It was <b>"+esc(t.title)+"</b> (<a href='"+esc(link)+"' target='_blank' rel='noopener'>article, photo credit and licence</a>).</p><p>"+(R.cfg.interim?"You were "+distText(m)+" off, you worked for "+INTERIM_HOURS+" hours and earned \u00a3"+interimPay(m):"You were "+distText(m)+" off: "+mins(mine)+" lost"+(extra>0?" (including "+mins(extra)+" on clues)":""))+".</p><div class='row'><button class='btn' id='lmdone'>Continue</button></div>";
   $("lmdone").onclick=function(){finish({title:t.title,distText:distText(m),distM:m,lost:mine})}
  }
  return{start:start,attach:attach,reset:reset}
