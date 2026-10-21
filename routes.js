@@ -1,4 +1,4 @@
-// Route options: three routes with different character for the current race (call after newRace has set S).
+// Route options: three route profiles for the current journey (call after newJourney has set S).
 // Fast = quickest, Thrifty = cheapest, Cultural = passes through the most culturally rich places.
 // Ferries, night services and sleepers appear only if the transport engine finds them worthwhile.
 function cultRating(n){var p=N[n];if(CULTURE[n]!==undefined)return CULTURE[n];return p.s>=3?3:p.s==2?2:EXTRA_CITIES.indexOf(n)>-1?1:0}

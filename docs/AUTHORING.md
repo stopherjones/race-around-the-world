@@ -54,7 +54,7 @@ Nearby places in different regions are linked automatically, so a border only ne
 - **Reachable:** every region must connect to the rest through the border table, otherwise the checker reports it.
 - **Costs:** a new country letter with no `IDX` entry is an error.
 - **Corridor:** long detours need a wide corridor. If a journey that should work says "no route found", check it against the full network before changing data.
-- **Budgets:** the starting income is £500 per leg. Far-away destinations may need the income raised.
+- **Budgets:** the starting income is £350 per leg. Far-away destinations may need the income raised.
 - **Sanity:** real services differ a lot between countries. Check a few journeys and adjust the hours and costs where they look wrong.
 
 ## Commands

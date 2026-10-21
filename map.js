@@ -1,7 +1,7 @@
 // Shared map: one MapLibre instance for the whole game. Lazy-loads MapLibre, strips the OpenFreeMap style of
 // every label except road names, and adds satellite and hybrid modes. Features add their own layers and clean up after themselves.
 var MAPX=(function(){
- var ML="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/",el=null,map=null,built=null,mode="streets",loadP=null,initP=null,labelsOn=false;
+ var ML="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/",el=null,map=null,built=null,mode="streets",loadP=null,initP=null,labelsOn=false,container=null;
  function load(){
   if(window.maplibregl)return Promise.resolve();
   if(loadP)return loadP;
@@ -35,7 +35,8 @@ function buildStyle(st){
   built.hyb.forEach(function(id){vis(id,m=="hybrid")});
   built.labels.forEach(function(id){vis(id,labelsOn)})
  }
- function init(container){
+ function init(c){
+  if(c)container=c;
   if(initP)return initP;
   initP=load().then(function(){return fetch(CONFIG.STYLE_URL)}).then(function(r){return r.json()}).then(function(st){
    built=buildStyle(st);el=document.createElement("div");el.className="gmap";el.style.cssText="width:100%;height:100%";
@@ -46,6 +47,6 @@ function buildStyle(st){
   }).catch(function(e){initP=null;throw e});
   return initP
  }
- function attach(c){if(el&&c){c.appendChild(el);if(map)setTimeout(function(){map.resize()},30)}}
+ function attach(c){if(c)container=c;if(el&&container){container.appendChild(el);if(map)setTimeout(function(){map.resize()},30)}}
  return{load:load,init:init,attach:attach,setMode:setMode,mode:function(){return mode},setLabels:function(on){labelsOn=on;setMode(mode)},built:function(){return built},map:function(){return map}}
 })();
