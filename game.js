@@ -219,7 +219,7 @@ function routeFlavourFor(from,to,options){
  return ROUTE_FLAVOUR[key]
 }
 function fillRouteFlavour(){
- var el=document.getElementById("route-flavour");if(!el||!S||S.phase!=="routes"||departNeeded())return;
+ var el=document.getElementById("route-flavour");if(!el||!S||S.phase!=="routes")return;
  var from=S.start=="lon"?"London":N[S.start].n,to=N[S.goal].n,key=S.start+">"+S.goal;
  routeFlavourFor(from,to,S.opts).then(function(text){var current=document.getElementById("route-flavour");if(current&&S&&S.phase==="routes"&&S.start+">"+S.goal===key)current.textContent=text})
 }
@@ -374,7 +374,8 @@ function planDone(skip){
 }
 function planHtml(){var p=S.plan;if(!p||p.skipped)return"";return"<p class='res'><b>Planning: "+Math.round(p.km)+" km off</b><span>You lost "+mins(p.lost)+".</span></p>"}
 function routesPanel(){
- return"<div class='panel'><h2>Where to?</h2><p class='mute'>Your journey begins in "+esc(N[S.start].n)+" and ends in "+esc(N[S.goal].n)+".</p><p class='route-flavour' id='route-flavour' aria-live='polite'>Thinking about the journey ahead…</p><p class='mute'>Target: arrive by "+stamp(S.target||0)+" to earn the £"+BONUS+" bonus. Choose individual services as you travel.</p><button class='btn' onclick='beginTravel()'>Begin journey</button></div>"
+ var next=departNeeded()?departChoicesHtml():"<button class='btn' onclick='beginTravel()'>Begin journey</button>";
+ return"<div class='panel'><h2>Where to?</h2><p class='mute'>Your journey begins in "+esc(N[S.start].n)+" and ends in "+esc(N[S.goal].n)+".</p><p class='route-flavour' id='route-flavour' aria-live='polite'>Thinking about the journey ahead…</p><p class='mute'>Target: arrive by "+stamp(S.target||0)+" to earn the £"+BONUS+" bonus. Choose individual services as you travel.</p>"+next+"</div>"
 }
 function bindModes(){
  document.querySelectorAll(".modebar [data-mode]").forEach(function(b){
@@ -384,11 +385,11 @@ function bindModes(){
 }
 function MAPX_MODE(){return window.MAPX&&MAPX.mode?MAPX.mode():"streets"}
 function departNeeded(){return!!(S&&S.phase==="routes"&&!S.departed&&S.loc===S.start&&terms(S.loc).length>1)}
-function departPanel(){
+function departChoicesHtml(){
  var b=terms(S.loc).map(function(g){return"<button class='card' onclick='chooseDepart(\""+g+"\")'><b>"+TV[g]+"</b><span>Set off from the "+TN[g]+" in "+esc(N[S.loc].n)+".</span></button>"}).join("");
- return"<div class='panel'><h2>Where to from "+esc(N[S.loc].n)+"?</h2><p class='mute' style='margin:0 0 10px'>Choose how to leave. The routes depend on where you start.</p>"+b+"</div>"
+ return"<h3>Choose where to set off</h3><p class='mute' style='margin:0 0 10px'>The routes available depend on your departure terminal.</p>"+b
 }
-function chooseDepart(g){if(!S||S.phase!=="routes")return;S.term=g;S.departed=1;S.opts=routeOptions(S.budget);S.target=targetFor(routePool(S.budget),S.opt);render()}
+function chooseDepart(g){if(!S||S.phase!=="routes")return;S.term=g;S.departed=1;S.opts=routeOptions(S.budget);S.target=targetFor(routePool(S.budget),S.opt);beginTravel()}
 function beginTravel(){
  if(!S||S.phase!=="routes"||departNeeded())return;
  S.phase="move";say("Set out from "+N[S.start].n+" towards "+N[S.goal].n+".");render()
@@ -760,7 +761,7 @@ function render(msg){
  }else{
 
   if(S.cards.length)h+="<p class='hand'>Carrying: "+S.cards.map(function(k){return CARDS[k][0]}).join(", ")+"</p>";
-  if(S.phase=="lastmile"||S.phase=="interim")h+="<div class='panel'><h2>"+(S.phase=="interim"?"Last-mile work":"Last mile")+"</h2><div id='lm'></div></div>";else if(S.phase=="plan")h+=planPanel();else if(S.phase=="routes")h+=departNeeded()?departPanel():routesPanel();
+  if(S.phase=="lastmile"||S.phase=="interim")h+="<div class='panel'><h2>"+(S.phase=="interim"?"Last-mile work":"Last mile")+"</h2><div id='lm'></div></div>";else if(S.phase=="plan")h+=planPanel();else if(S.phase=="routes")h+=routesPanel();
   if(S.phase=="lastmile"||S.phase=="interim"||S.phase=="plan"||S.phase=="routes"){}else if(S.phase=="stay"){var po=opts()[S.pend],ss=sched(po,S.loc,S.h);h+="<div class='panel'><h2>No service until "+tm(ss.dep)+"</h2><p style='margin:0 0 10px'>Where will you sleep in "+N[S.loc].n+"?</p>";S.rooms.forEach(function(x,k){h+="<button class='card' onclick='stay("+k+")'"+(x.c>S.cash?" disabled":"")+"><b>"+x.n+", \u00a3"+x.c+"</b><span>"+(x.q?"A proper night's rest.":"Cheap, but you may sleep badly.")+"</span></button>"});if(!S.rooms.length)h+="<p style='margin:0 0 10px'>No rooms are free in town tonight.</p><button class='card' onclick='stay(-1)'><b>Spend the night at the station</b><span>Free, but you will be tired: 1 h lost on the next leg.</span></button>";h+="<button class='link' onclick='S.phase=\"move\";S.pend=null;render()'>Choose a different option</button></div>"}else if(S.phase=="draft"){
    h+="<div class='panel'><h2>Pick one to take with you</h2>";
    S.draft.forEach(function(k){h+="<button class='card' onclick=\"pick('"+k+"')\"><b>"+CARDS[k][0]+"</b><span>"+CARDS[k][1]+"</span></button>"});
