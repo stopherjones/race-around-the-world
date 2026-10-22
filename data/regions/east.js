@@ -1,2 +1,2 @@
 // Region: Poland, Czechia, Austria and Hungary. Places as id|name|lat|lon|country|flags, separated by ;
-var REGION_EAST="war|Warsaw|52.229|21.012|E|ra3;krk|Krakow|50.065|19.945|E|ra2;pra|Prague|50.075|14.437|E|ra3;vie|Vienna|48.208|16.373|E|ra3;bud|Budapest|47.497|19.040|E|ra3";
+var REGION_EAST="war|Warsaw|52.229|21.012|E|ra3;krk|Krakow|50.065|19.945|E|ra2;pra|Prague|50.075|14.437|E|ra3;vie|Vienna|48.208|16.373|E|ra3;bud|Budapest|47.497|19.040|E|ra3;bts|Bratislava|48.147|17.107|E|ra2a;ljb|Ljubljana|46.056|14.505|E|ra2a";

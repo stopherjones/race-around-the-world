@@ -1,0 +1,2 @@
+// Region: Belarus, Ukraine, Moldova, Romania and Russia (European part). Places as id|name|lat|lon|country|flags, separated by ;
+var REGION_EASTERN_EUROPE="mns|Minsk|53.904|27.562|BY|ra3a;kyi|Kyiv|50.450|30.524|UA|ra3a;lvv|Lviv|49.842|24.032|UA|ra2a;ods|Odesa|46.485|30.733|UA|rap2;khk|Kharkiv|49.993|36.230|UA|ra2a;chs|Chisinau|47.011|28.863|MD|ra2a;buh|Bucharest|44.427|26.103|RO|ra3a;clj|Cluj-Napoca|46.770|23.590|RO|ra2a;cst|Constanta|44.176|28.651|RO|rap2;mkv|Moscow|55.756|37.617|RU|ra3a;spb|St Petersburg|59.939|30.316|RU|ra3ap";
