@@ -1,0 +1,3 @@
+// Region: Jordan, Israel, Lebanon, Syria and the Palestinian territories. Places as id|name|lat|lon|country|flags, separated by ;
+// Included as ordinary places, with no special handling for disputed areas.
+var REGION_LEVANT="amm|Amman|31.954|35.911|JO|ra3a;aqb|Aqaba|29.527|35.008|JO|ap2p;jrs|Jerusalem|31.768|35.214|IL|ra3a;tlv|Tel Aviv|32.085|34.782|IL|ra3ap;hfa|Haifa|32.794|34.990|IL|rap2;eil|Eilat|29.558|34.948|IL|ap1p;bey|Beirut|33.889|35.496|LB|ra3ap;trp|Tripoli|34.436|35.836|LB|rap2;dam|Damascus|33.513|36.292|SY|ra3a;alp|Aleppo|36.202|37.160|SY|ra3a;ltk|Latakia|35.524|35.781|SY|ap2p;ram|Ramallah|31.903|35.204|PS|ra1;gaz|Gaza City|31.502|34.467|PS|2";
