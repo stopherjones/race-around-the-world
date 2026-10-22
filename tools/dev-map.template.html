@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Role Around the World: dev map</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<style>
+  html, body { margin: 0; height: 100%; font: 13px/1.4 system-ui, sans-serif; }
+  #map { position: absolute; inset: 0; }
+  #panel { position: absolute; top: 10px; left: 10px; width: 260px; max-height: calc(100% - 20px);
+           overflow: auto; background: rgba(255,255,255,.95); border-radius: 6px; padding: 10px 12px;
+           box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+  #panel h1 { font-size: 15px; margin: 0 0 6px; }
+  #panel label { display: block; margin: 3px 0; }
+  #panel .sw { display: inline-block; width: 18px; height: 4px; vertical-align: middle; margin-right: 6px; }
+  #info { margin-top: 10px; border-top: 1px solid #ddd; padding-top: 8px; }
+  #info ul { margin: 4px 0 0; padding-left: 16px; }
+  #search { width: 100%; box-sizing: border-box; margin: 6px 0; padding: 4px; }
+  .muted { color: #666; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="panel">
+  <h1>Dev map</h1>
+  <div class="muted" id="counts"></div>
+  <input id="search" placeholder="Find a place" list="places">
+  <datalist id="places"></datalist>
+  <div id="layers"></div>
+  <label><input type="checkbox" id="labels" checked> Place names</label>
+  <div id="info" class="muted">Click a place to see its links.</div>
+</div>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script>
+const DATA = /*DATA*/null;
+
+// Road, rail and sea links are drawn in different colours; air is hidden until ticked.
+const MODES = {
+  bus:    { label: "Bus / coach", color: "#2b6cb0", on: true },
+  shared: { label: "Shared transport", color: "#38a169", on: true },
+  rail:   { label: "Rail", color: "#805ad5", on: true },
+  ferry:  { label: "Ferry", color: "#dd6b20", on: true },
+  air:    { label: "Air", color: "#a0aec0", on: false },
+  hsr:    { label: "High speed rail", color: "#d53f8c", on: true }
+};
+
+const placeById = {};
+DATA.places.forEach(p => placeById[p.id] = p);
+const linksFor = {};
+DATA.links.forEach(l => {
+  (linksFor[l.a] = linksFor[l.a] || []).push(l);
+  (linksFor[l.b] = linksFor[l.b] || []).push(l);
+});
+
+document.getElementById("counts").textContent =
+  DATA.places.length + " places, " + DATA.links.length + " links";
+
+const modeNames = [...new Set(DATA.links.map(l => l.m))].sort();
+const layersDiv = document.getElementById("layers");
+modeNames.forEach(m => {
+  const def = MODES[m] || { label: m, color: "#000", on: true };
+  MODES[m] = def;
+  const row = document.createElement("label");
+  row.innerHTML = '<input type="checkbox" data-mode="' + m + '"' + (def.on ? " checked" : "") + '>' +
+    '<span class="sw" style="background:' + def.color + '"></span>' + def.label;
+  layersDiv.appendChild(row);
+});
+
+const datalist = document.getElementById("places");
+DATA.places.slice().sort((a, b) => a.name.localeCompare(b.name)).forEach(p => {
+  const o = document.createElement("option");
+  o.value = p.name + " (" + p.id + ")";
+  datalist.appendChild(o);
+});
+
+function linkFeatures() {
+  return {
+    type: "FeatureCollection",
+    features: DATA.links.map(l => {
+      const a = placeById[l.a], b = placeById[l.b];
+      return {
+        type: "Feature",
+        properties: { m: l.m, a: a.name, b: b.name, km: l.km, h: l.h, c: l.c },
+        geometry: { type: "LineString", coordinates: [[a.lon, a.lat], [b.lon, b.lat]] }
+      };
+    })
+  };
+}
+
+function placeFeatures() {
+  return {
+    type: "FeatureCollection",
+    features: DATA.places.map(p => ({
+      type: "Feature",
+      properties: { id: p.id, name: p.name, region: p.region, cc: p.cc, size: p.size },
+      geometry: { type: "Point", coordinates: [p.lon, p.lat] }
+    }))
+  };
+}
+
+const map = new maplibregl.Map({
+  container: "map",
+  style: "https://demotiles.maplibre.org/style.json",
+  center: [20, 15],
+  zoom: 1.8
+});
+
+map.on("load", () => {
+  map.addSource("links", { type: "geojson", data: linkFeatures() });
+  map.addSource("places", { type: "geojson", data: placeFeatures() });
+
+  const colorExpr = ["match", ["get", "m"]];
+  Object.keys(MODES).forEach(m => colorExpr.push(m, MODES[m].color));
+  colorExpr.push("#000000");
+
+  map.addLayer({
+    id: "links", type: "line", source: "links",
+    paint: { "line-color": colorExpr, "line-width": 1.2, "line-opacity": 0.7 }
+  });
+  map.addLayer({
+    id: "places", type: "circle", source: "places",
+    paint: {
+      "circle-radius": ["match", ["get", "size"], 3, 6, 2, 4, 3],
+      "circle-color": "#1a202c", "circle-stroke-color": "#fff", "circle-stroke-width": 1
+    }
+  });
+  map.addLayer({
+    id: "labels", type: "symbol", source: "places",
+    layout: { "text-field": ["get", "name"], "text-size": 11, "text-offset": [0, 0.9], "text-anchor": "top" },
+    paint: { "text-color": "#1a202c", "text-halo-color": "#fff", "text-halo-width": 1 }
+  });
+
+  applyFilters();
+
+  map.on("click", "places", e => {
+    const p = placeById[e.features[0].properties.id];
+    showInfo(p);
+  });
+  map.on("mouseenter", "places", () => map.getCanvas().style.cursor = "pointer");
+  map.on("mouseleave", "places", () => map.getCanvas().style.cursor = "");
+  map.on("click", "links", e => {
+    const f = e.features[0].properties;
+    new maplibregl.Popup().setLngLat(e.lngLat).setHTML(
+      "<b>" + f.a + " to " + f.b + "</b><br>" + (MODES[f.m] ? MODES[f.m].label : f.m) +
+      "<br>" + f.km + " km, " + f.h + " h, £" + f.c
+    ).addTo(map);
+  });
+});
+
+function applyFilters() {
+  const on = [...document.querySelectorAll("[data-mode]")].filter(c => c.checked).map(c => c.dataset.mode);
+  map.setFilter("links", ["in", ["get", "m"], ["literal", on]]);
+}
+document.querySelectorAll("[data-mode]").forEach(c => c.addEventListener("change", applyFilters));
+document.getElementById("labels").addEventListener("change", e => {
+  map.setLayoutProperty("labels", "visibility", e.target.checked ? "visible" : "none");
+});
+
+document.getElementById("search").addEventListener("change", e => {
+  const m = e.target.value.match(/\(([^)]+)\)$/);
+  const id = m ? m[1] : null;
+  const p = id && placeById[id];
+  if (p) {
+    map.flyTo({ center: [p.lon, p.lat], zoom: 5 });
+    showInfo(p);
+  }
+});
+
+function showInfo(p) {
+  const links = (linksFor[p.id] || []).map(l => {
+    const other = placeById[l.a === p.id ? l.b : l.a];
+    return "<li>" + other.name + " (" + (MODES[l.m] ? MODES[l.m].label : l.m) + ", " +
+      l.km + " km, " + l.h + " h, £" + l.c + ")</li>";
+  }).join("");
+  document.getElementById("info").innerHTML =
+    "<b>" + p.name + "</b> (" + p.id + ")<br>" + p.region + ", " + p.cc +
+    "<br><ul>" + (links || "<li>No links</li>") + "</ul>";
+}
+</script>
+</body>
+</html>
