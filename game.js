@@ -1,7 +1,7 @@
-var VT=20,NOISE=.35,KEY="route-generator-v4",S=null,IDX={U:1.15,F:1,B:1.05,N:1.05,G:1.05,S:.85,T:.95,C:1.6,R:1.1,D:1.3,E:.7,K:.75,Y:.6,M:.7,V:.65,H:.8};
+var VT=20,NOISE=.35,KEY="route-generator-v4",S=null,IDX={U:1.15,F:1,B:1.05,N:1.05,G:1.05,S:.85,T:.95,C:1.6,R:1.1,D:1.3,E:.7,K:.75,Y:.6,M:.7,V:.65,H:.8,Q:.6,Z:.6};
 var N={};
 function loadWorld(str){N={};str.split(";").forEach(function(s){var p=s.split("|"),f=p[5];N[p[0]]={n:p[1],la:+p[2],lo:+p[3],c:p[4],r:f.indexOf("r")>-1,a:f.indexOf("a")>-1,p:f.indexOf("p")>-1,h:f.indexOf("h")>-1,l:f.indexOf("l")>-1,s:+(f.match(/\d/)||[1])[0]}});ids=Object.keys(N);towns=ids.filter(function(i){return!N[i].l});E=[];ADJ={};seen={};buildLinks()}
-var MODE={tube:"metro",bus:"bus",coach:"coach",rail:"train",hsr:"fast train",ferry:"ferry",air:"flight"},GRP={rail:"Trains",hsr:"Fast trains",coach:"Coaches",bus:"Buses",ferry:"Ferries",air:"Flights",tube:"Metro"},ORD=["rail","hsr","coach","bus","ferry","air","tube"];
+var MODE={tube:"metro",bus:"bus",coach:"coach",rail:"train",hsr:"fast train",ferry:"ferry",air:"flight",shared:"shared minibus"},GRP={rail:"Trains",hsr:"Fast trains",coach:"Coaches",bus:"Buses",ferry:"Ferries",air:"Flights",tube:"Metro",shared:"Shared transport"},ORD=["rail","hsr","coach","bus","shared","ferry","air","tube"];
 var CARDS={rail:["Rail pass","Train and fast-train fares cost 30% less.",1],prio:["Priority boarding","Ferries and flights take 0.8 h less.",1],fixer:["Local fixer","Cancels your next bad event.",1],guide:["Local guide","Shows every onward option from here, free.",0],purse:["Winnings at cards","Gain \u00a340 now.",0]};
 
 function hav(a,b){var A=N[a],B=N[b],r=Math.PI/180,x=(B.lo-A.lo)*r*Math.cos((A.la+B.la)/2*r),y=(B.la-A.la)*r;return Math.sqrt(x*x+y*y)*6371}
@@ -104,7 +104,12 @@ var HW={tube:.12,bus:.6,rail:.8,hsr:1.5,ferry:2,air:4};
 // Service frequency: headway grows with leg length (short hops run often, long hops less often); ferries run about half as often again
 function hdw(o,from){var b=o.lg&&o.m=="bus"?3:o.lg&&o.m=="rail"?2:HW[o.m],f=Math.min(3,.7+hav(from,o.to)/500);return b*f*(o.m=="ferry"?2:1)*[0,1.5,1,.7][N[from].s]}
 function nextDep(o,from,t){if(o.dp!=null){var evd=o.ev||1,pd=hsh(from+o.to)%evd,A=8+t,dy=Math.floor(A/24);for(var k=0;k<=evd*2+1;k++){var d=dy+k;if(d%evd==pd&&d*24+o.dp>=A-1e-9)return d*24+o.dp-8}}var H=hdw(o,from),ph=hsh(from+o.to+o.m)/1000*H,n=Math.ceil((8+t-ph)/H-1e-9);return ph+n*H-8}
+// Local names for shared vehicles, by the country of departure (generic where not listed)
+var SHARED_NAME={M:"grand taxi",V:"dolmuş",K:"kombi",Y:"marshrutka",Q:"taxi brousse",Z:"car rapide"};
+function sharedName(from){return SHARED_NAME[N[from]&&N[from].c]||"shared minibus"}
 function sched(o,from,t){
+ // Shared vehicles leave when full: the wait is an estimate, seeded so it is the same for everyone
+ if(o.m=="shared"){var w=0.5+hsh(from+o.to+Math.floor(t))/333;return{dep:t+w,night:0,ns:0,nn:1}}
  if(o.hw>0&&o.dp>=0){var step=Math.max(24,o.hw),base=o.dp-8,dd=base+Math.max(0,Math.ceil((t-base)/step-1e-9))*step;if(dd<t-1e-9)dd+=step;var da=Math.floor((8+dd)/24)-Math.floor((8+t)/24);return{dep:dd,night:da>0&&dd-t>5?1:0,nn:Math.max(1,da),ns:0}}
  var d0=nextDep(o,from,t),tod=(8+d0)%24,day=Math.floor((8+d0)/24),w=WIN[o.m];
  if((o.m=="rail"||o.m=="bus")&&o.lg)w=[6,23];
@@ -453,7 +458,7 @@ function updatePanelNav(){
 }
 function mfit(){if(MJ.p)MJ.p.then(function(map){if(map&&S)fitJourney(map)})}
 var TN={r:"train station",b:"bus station",f:"ferry terminal",a:"airport"},TV={r:"Train station",b:"Bus station",f:"Ferry terminal",a:"Airport"};
-function grp(m){return{tube:"r",rail:"r",hsr:"r",bus:"b",coach:"b",ferry:"f",air:"a"}[m]}
+function grp(m){return{tube:"r",rail:"r",hsr:"r",bus:"b",coach:"b",shared:"b",ferry:"f",air:"a"}[m]}
 function terms(n){var o={},r=[];(ADJ[n]||[]).forEach(function(j){var e=E[j];if(S.air||e.m!="air")o[grp(e.m)]=1});["r","b","f","a"].forEach(function(g){if(o[g])r.push(g)});return r}
 function xf(n,a,b){if(a==b)return{h:0,c:0};var s=N[n].s,k=IDX[N[n].c],air=a=="a"||b=="a",fer=a=="f"||b=="f";return{h:air?[0,1.2,1.2,1.5][s]:fer?[0,.6,.7,.9][s]:[0,.25,.35,.5][s],c:Math.round((air?20:fer?6:2)*k)}}
 function xfer(g){if(S.over||S.phase!="move")return;var x=xf(S.loc,S.term,g);if(x.c>S.cash)return;S.h+=x.h;S.cash-=x.c;S.spent+=x.c;S.term=g;S.arr=S.h;say(clk(S.h)+": You make your way to the "+TN[g]+" in "+N[S.loc].n+" ("+x.h+" h, \u00a3"+x.c+").");render()}
@@ -530,7 +535,7 @@ function hop(i,dep){
  var x=S.ev?ev(roll()):ev(3),t=x.t;
  if(x.c>0||x.h>0){if(has("fixer")){drop("fixer");x={h:0,c:0};t="Your fixer smooths over the trouble."}}
  S.h=Math.max(0,S.h+x.h);S.cash=Math.max(0,S.cash-x.c);S.spent+=x.c;
- say(clk(S.h)+": "+MODE[o.m]+" to "+N[o.to].n+" ("+o.h+" h, \u00a3"+o.c+"). "+t);
+ say(clk(S.h)+": "+(o.m=="shared"?sharedName(S.loc):MODE[o.m])+" to "+N[o.to].n+" ("+o.h+" h, \u00a3"+o.c+"). "+t);
  if(S.loc==S.goal){S.arrH=S.h;if(S.lmOn){S.phase="lastmile";S.draft=[];startLM();return render()}settleBonus();S.over="done";return render()}
  S.arr=S.h;S.term=grp(o.m);
  if(!S.ev){S.draft=[];pick(null);return}
@@ -640,7 +645,7 @@ function pickDest(from,dirs){
 
 // ---- On-demand regions: a region's map data is loaded when a route needs it, then the world is rebuilt from what is loaded.
 // Regions are only added, never removed, so places already on screen stay valid.
-var REGION_VARS={uk:"REGION_UK",fr:"REGION_FR",benelux:"REGION_BENELUX",de:"REGION_DE","alps-it":"REGION_ALPS_IT",es:"REGION_ES",scandinavia:"REGION_SCANDINAVIA",east:"REGION_EAST",balkans:"REGION_BALKANS","north-africa":"REGION_NORTH_AFRICA",turkey:"REGION_TURKEY",greece:"REGION_GREECE"};
+var REGION_VARS={uk:"REGION_UK",fr:"REGION_FR",benelux:"REGION_BENELUX",de:"REGION_DE","alps-it":"REGION_ALPS_IT",es:"REGION_ES",scandinavia:"REGION_SCANDINAVIA",east:"REGION_EAST",balkans:"REGION_BALKANS","north-africa":"REGION_NORTH_AFRICA",turkey:"REGION_TURKEY",greece:"REGION_GREECE","west-africa":"REGION_WEST_AFRICA"};
 var LOADED_REGIONS={},REGION_SCRIPTS={};
 // Drop a region from memory: its places and links leave the world, and its script is removed. It loads again if needed.
 function unloadRegion(name){
@@ -700,6 +705,25 @@ function journeyReady(a,b){
 function startJourney(a,b,air,evn,lm,camp){
  return journeyReady(a,b).then(function(){NEXT_CAMP=camp||null;return newJourney(a,b,air,evn,lm)})
 }
+// Testing: pick any start and destination, grouped by region, to reach a place without waiting for a random draw
+function testPickerHtml(){
+ var byRegion={};
+ GAZETTEER.split(";").filter(Boolean).forEach(function(r){var p=r.split("|");(byRegion[p[5]]=byRegion[p[5]]||[]).push({id:p[0],name:p[1]})});
+ var opts=function(sel){return Object.keys(byRegion).sort().map(function(reg){
+  return "<optgroup label='"+esc(reg)+"'>"+byRegion[reg].sort(function(a,b){return a.name<b.name?-1:1}).map(function(c){return "<option value='"+c.id+"'"+(c.id===sel?" selected":"")+">"+esc(c.name)+"</option>"}).join("")+"</optgroup>"
+ }).join("")};
+ return "<details style='margin-top:14px'><summary class='mute'>Testing: choose a start and destination</summary>"+
+  "<div class='row' style='margin-top:10px'><label class='mute' style='flex:1;min-width:140px'>From<select id='testFrom' style='width:100%'>"+opts("lon")+"</select></label>"+
+  "<label class='mute' style='flex:1;min-width:140px'>To<select id='testTo' style='width:100%'>"+opts("rom")+"</select></label></div>"+
+  "<div class='row' style='margin-top:10px'><button class='secondary' onclick='beginTestPick()'>Start this journey</button></div></details>"
+}
+function beginTestPick(){beginTo(document.getElementById('testFrom').value,document.getElementById('testTo').value)}
+function beginTo(from,to){
+ if(!from||!to||from===to){S=null;return render("Choose two different places.")}
+ activePanel="play";
+ var lm={on:true,clue:"off",level:"mixed",plan:true};
+ return startJourney(from,to,false,false,lm).then(function(ok){if(ok)return render();S=null;return render("No route found between those places.")},function(err){S=null;return render("Could not load the map: "+(err&&err.message||err))})
+}
 function begin(){
  activePanel="play";var from="lon",to=pickDest(from),lm={on:true,clue:"off",level:"mixed",plan:true},tries=0;
  var fail=function(err){if(err)console.warn(err);S=null;return render(err&&err.message?"Could not load the map: "+err.message+". Check that every file in data/regions/ is in place.":"Couldn't find a route. Try again.")};
@@ -747,7 +771,7 @@ function render(msg){
  if(stranded())S.over="broke";
  save();var h="<h1>Role Around the World</h1>";
  if(!S){
-  h+="<p class='sub'>Set out from Trafalgar Square, discover a new destination each leg, and make your own way there. Manage your time and money, keep a travel journal, and take on a photo challenge when you arrive. Your campaign can continue for as long as you like.</p><div class='panel'>"+(msg?"<p style='color:var(--bad)'>"+esc(msg)+"</p>":"")+"<div class='row' style='margin-top:12px'><button class='btn' onclick='begin()'>Start journey</button></div><p class='mute' style='margin:14px 0 0'><a href='rules.html'>Rules and guide</a></p></div>";
+  h+="<p class='sub'>Set out from Trafalgar Square, discover a new destination each leg, and make your own way there. Manage your time and money, keep a travel journal, and take on a photo challenge when you arrive. Your campaign can continue for as long as you like.</p><div class='panel'>"+(msg?"<p style='color:var(--bad)'>"+esc(msg)+"</p>":"")+"<div class='row' style='margin-top:12px'><button class='btn' onclick='begin()'>Start journey</button></div><p class='mute' style='margin:14px 0 0'><a href='rules.html'>Rules and guide</a></p></div>"+testPickerHtml();
   var app=document.getElementById("app");app.classList.remove("wide");app.innerHTML=h;
   return}
  var st=status();
