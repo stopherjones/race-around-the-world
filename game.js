@@ -1,4 +1,4 @@
-var VT=20,NOISE=.35,KEY="route-generator-v4",S=null,IDX={U:1.15,F:1,B:1.05,N:1.05,G:1.05,S:.85,T:.95,C:1.6,R:1.1,D:1.3,E:.7,K:.75,Y:.6,M:.7,V:.65,H:.8,Q:.6,Z:.6,J:.6,L:.75,P:.95,I:.9,O:.8,X:.6,W:.8,A:.7};
+var VT=20,NOISE=.35,KEY="route-generator-v4",S=null,IDX={U:1.15,F:1,B:1.05,N:1.05,G:1.05,S:.85,T:.95,C:1.6,R:1.1,D:1.3,E:.7,K:.75,Y:.6,M:.7,V:.65,H:.8,Q:.6,Z:.6,J:.6,L:.75,P:.95,I:.9,O:.8,X:.6,W:.8,A:.7,a:.75,b:.85,c:.95,d:1.2,e:.7,f:.8,g:.7,h:.6,i:.6,j:1.1,k:1.2,l:1.2,m:.9};
 var N={};
 function loadWorld(str){N={};str.split(";").forEach(function(s){var p=s.split("|"),f=p[5];N[p[0]]={n:p[1],la:+p[2],lo:+p[3],c:p[4],r:f.indexOf("r")>-1,a:f.indexOf("a")>-1,p:f.indexOf("p")>-1,h:f.indexOf("h")>-1,l:f.indexOf("l")>-1,s:+(f.match(/\d/)||[1])[0]}});ids=Object.keys(N);towns=ids.filter(function(i){return!N[i].l});E=[];ADJ={};seen={};buildLinks()}
 var MODE={tube:"metro",bus:"bus",coach:"coach",rail:"train",hsr:"fast train",ferry:"ferry",air:"flight",shared:"shared minibus"},GRP={rail:"Trains",hsr:"Fast trains",coach:"Coaches",bus:"Buses",ferry:"Ferries",air:"Flights",tube:"Metro",shared:"Shared transport"},ORD=["rail","hsr","coach","bus","shared","ferry","air","tube"];
@@ -105,7 +105,7 @@ var HW={tube:.12,bus:.6,rail:.8,hsr:1.5,ferry:2,air:4};
 function hdw(o,from){var b=o.lg&&o.m=="bus"?3:o.lg&&o.m=="rail"?2:HW[o.m],f=Math.min(3,.7+hav(from,o.to)/500);return b*f*(o.m=="ferry"?2:1)*[0,1.5,1,.7][N[from].s]}
 function nextDep(o,from,t){if(o.dp!=null){var evd=o.ev||1,pd=hsh(from+o.to)%evd,A=8+t,dy=Math.floor(A/24);for(var k=0;k<=evd*2+1;k++){var d=dy+k;if(d%evd==pd&&d*24+o.dp>=A-1e-9)return d*24+o.dp-8}}var H=hdw(o,from),ph=hsh(from+o.to+o.m)/1000*H,n=Math.ceil((8+t-ph)/H-1e-9);return ph+n*H-8}
 // Local names for shared vehicles, by the country of departure (generic where not listed)
-var SHARED_NAME={M:"grand taxi",V:"dolmuş",K:"kombi",Y:"marshrutka",Q:"taxi brousse",Z:"car rapide"};
+var SHARED_NAME={M:"grand taxi",V:"dolmuş",K:"kombi",Y:"marshrutka",Q:"taxi brousse",Z:"car rapide",W:"matatu",A:"daladala",I:"danfo",P:"trotro",X:"minibus",J:"microbus",L:"shared taxi",O:"bush taxi",a:"matatu",b:"minibus",c:"bush taxi",d:"taxi",e:"minibus",f:"minibus",g:"kombi",h:"minibus",i:"chapa",j:"minibus taxi",k:"combi",l:"combi",m:"candongueiro"};
 function sharedName(from){return SHARED_NAME[N[from]&&N[from].c]||"shared minibus"}
 function sched(o,from,t){
  // Shared vehicles leave when full: the wait is an estimate, seeded so it is the same for everyone
@@ -611,7 +611,8 @@ function targetFor(pool,fallback){
  var base=hs.length?hs[Math.floor(hs.length/2)]:(fallback?fallback.h:0);
  return base+PLAN_ALLOW+LM_ALLOW
 }
-var MIN_KM=1000,MAX_KM=2000;
+// Distance band for a destination in a given region (config.js DISTANCE_BANDS)
+function bandFor(region){var b=DISTANCE_BANDS[region]||DISTANCE_BANDS["default"];return b}
 function isCity(i){return!N[i].l&&(N[i].s>=2||EXTRA_CITIES.indexOf(i)>-1)}
 // Destination candidates come from the gazetteer, so a city can be chosen even when its region is not loaded.
 // Places are kept in the same order as the place list, so the same seed gives the same destination.
@@ -637,7 +638,7 @@ function unitVecP(A,B){var r=Math.PI/180,x=(B.lo-A.lo)*Math.cos((A.la+B.la)/2*r)
 function unitVec(a,b){return unitVecP(N[a],N[b])}
 var HEAD_LEGS=3,HEAD_SHARE=.75,HEAD_COS=.7;
 function pickDest(from,dirs){
- var F=placeOf(from),c=gazetteer().filter(function(g){if(g.id==from||!gzCity(g))return false;var d=kmBetween(F.la,F.lo,g.la,g.lo);return d>=MIN_KM&&d<=MAX_KM}).map(function(g){return g.id});
+ var F=placeOf(from),c=gazetteer().filter(function(g){if(g.id==from||!gzCity(g))return false;var d=kmBetween(F.la,F.lo,g.la,g.lo),b=bandFor(g.region);return d>=b[0]&&d<=b[1]}).map(function(g){return g.id});
  if(!c.length)return null;
  var H=[0,0];(dirs||[]).forEach(function(v){H[0]+=v[0];H[1]+=v[1]});
  var hn=Math.sqrt(H[0]*H[0]+H[1]*H[1]);
@@ -650,7 +651,7 @@ function pickDest(from,dirs){
 
 // ---- On-demand regions: a region's map data is loaded when a route needs it, then the world is rebuilt from what is loaded.
 // Regions are only added, never removed, so places already on screen stay valid.
-var REGION_VARS={uk:"REGION_UK",fr:"REGION_FR",benelux:"REGION_BENELUX",de:"REGION_DE","alps-it":"REGION_ALPS_IT",es:"REGION_ES",scandinavia:"REGION_SCANDINAVIA",east:"REGION_EAST",balkans:"REGION_BALKANS","north-africa":"REGION_NORTH_AFRICA",turkey:"REGION_TURKEY",greece:"REGION_GREECE","west-africa":"REGION_WEST_AFRICA","egypt-libya":"REGION_EGYPT_LIBYA",sahel:"REGION_SAHEL","west-africa-coast":"REGION_WEST_AFRICA_COAST","east-africa":"REGION_EAST_AFRICA"};
+var REGION_VARS={uk:"REGION_UK",fr:"REGION_FR",benelux:"REGION_BENELUX",de:"REGION_DE","alps-it":"REGION_ALPS_IT",es:"REGION_ES",scandinavia:"REGION_SCANDINAVIA",east:"REGION_EAST",balkans:"REGION_BALKANS","north-africa":"REGION_NORTH_AFRICA",turkey:"REGION_TURKEY",greece:"REGION_GREECE","west-africa":"REGION_WEST_AFRICA","egypt-libya":"REGION_EGYPT_LIBYA","central-africa":"REGION_CENTRAL_AFRICA","southern-africa":"REGION_SOUTHERN_AFRICA",sahel:"REGION_SAHEL","west-africa-coast":"REGION_WEST_AFRICA_COAST","east-africa":"REGION_EAST_AFRICA"};
 var LOADED_REGIONS={},REGION_SCRIPTS={};
 // Drop a region from memory: its places and links leave the world, and its script is removed. It loads again if needed.
 function unloadRegion(name){
@@ -729,12 +730,14 @@ function beginTo(from,to){
  var lm={on:true,clue:"off",level:"mixed",plan:true};
  return startJourney(from,to,false,false,lm).then(function(ok){if(ok)return render();S=null;return render("No route found between those places.")},function(err){S=null;return render("Could not load the map: "+(err&&err.message||err))})
 }
+// Draw a start hub by weight from START_HUBS (config.js)
+function pickHub(){var t=0;START_HUBS.forEach(function(h){t+=h.w});var r=Math.random()*t;for(var i=0;i<START_HUBS.length;i++){r-=START_HUBS[i].w;if(r<0)return START_HUBS[i].id}return START_HUBS[0].id}
 function begin(){
- activePanel="play";var from="lon",to=pickDest(from),lm={on:true,clue:"off",level:"mixed",plan:true},tries=0;
+ activePanel="play";var from=pickHub(),to=pickDest(from),lm={on:true,clue:"off",level:"mixed",plan:true},tries=0;
  var fail=function(err){if(err)console.warn(err);S=null;return render(err&&err.message?"Could not load the map: "+err.message+". Check that every file in data/regions/ is in place.":"Couldn't find a route. Try again.")};
  var tryOne=function(){
   if(!to)return fail();
-  return startJourney(from,to,false,false,lm).then(function(ok){if(ok)return render();if(tries++<8){to=pickDest(from);return tryOne()}return fail()},fail)
+  return startJourney(from,to,false,false,lm).then(function(ok){if(ok)return render();if(tries++<8){from=pickHub();to=pickDest(from);return tryOne()}return fail()},fail)
  };
  return tryOne()
 }

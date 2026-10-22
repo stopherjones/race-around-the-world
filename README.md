@@ -28,7 +28,7 @@ When you reach the destination, a landmark photo from Wikipedia appears and you 
 Distance off becomes time lost (4.5 km/h) and is added to your arrival time. If the photo or map cannot load, a "Skip the last mile" button lets you finish with no penalty.
 
 ## Starting a journey
-Every journey starts in Trafalgar Square, London, with a random city 1,000 to 2,000 km away (`MIN_KM` / `MAX_KM` in `game.js`). Cities are places of size 2 or 3 plus the `EXTRA_CITIES` list in `data.js`.
+Each journey starts at a hub drawn by weight from `START_HUBS` in `config.js` (London only by default). The destination is a random city in the distance band for its own region, set in `DISTANCE_BANDS` in `config.js`; regions not listed use the `default` band of 1,000 to 2,000 km. Cities are places of size 2 or 3 plus the `EXTRA_CITIES` list in `data.js`.
 
 ## Planning phase
 Before leaving, you see the destination's name and tap where you think it is on the unlabelled map. Error converts to time at `PLAN_KM_PER_H` (150 km per hour, capped at `PLAN_MAX_H` = 8 h), which delays your departure.

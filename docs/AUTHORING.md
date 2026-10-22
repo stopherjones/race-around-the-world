@@ -18,7 +18,7 @@ Each place is one row inside a region file's string, separated by `;`:
 - **id:** 2 to 6 lower-case letters or digits, unique across all regions. Pick a short code, such as `cph` for Copenhagen. It must be unique across the whole project.
 - **Name:** shown to the player.
 - **latitude, longitude:** decimal degrees.
-- **country:** one capital letter. It sets the price level and which places can be linked by bus and rail. Every country letter needs an entry in `IDX` in `game.js`.
+- **country:** one letter, capital or lower case. Lower case codes are used once the 26 capitals run out. It sets the price level and which places can be linked by bus and rail. Every country letter needs an entry in `IDX` in `game.js`.
 - **flags:** any of these letters, and at most one digit:
   - `r` rail station
   - `a` airport

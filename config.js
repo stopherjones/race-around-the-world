@@ -1,4 +1,8 @@
 // Map sources. Swap these without touching the game code.
+// Legs start at a hub drawn by weight. Add a hub by place id; London is the default home.
+var START_HUBS=[{id:"lon",w:1}];
+// Destination distance band (km from the start), set per destination region. "default" applies to any region not listed.
+var DISTANCE_BANDS={"default":[1000,2000]};
 var CONFIG={
  // Vector basemap (OpenStreetMap data, no key). We fetch this style and strip it down at runtime.
  STYLE_URL:"https://tiles.openfreemap.org/styles/liberty",
