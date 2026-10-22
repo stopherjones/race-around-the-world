@@ -1,0 +1,3 @@
+// Region: Guatemala, Belize, Honduras, El Salvador, Nicaragua, Costa Rica and Panama. Places as id|name|lat|lon|country|flags, separated by ;
+// Continuous with Mexico and the US by road. Panama's southern border is not yet linked to South America.
+var REGION_CENTRAL_AMERICA="gua|Guatemala City|14.634|-90.507|GT|ra3a;bze|Belize City|17.499|-88.197|BZ|rap2;tgu|Tegucigalpa|14.072|-87.193|HN|ra2a;sps|San Pedro Sula|15.505|-88.025|HN|ra2a;ssv|San Salvador|13.689|-89.187|SV|ra2a;mga|Managua|12.114|-86.236|NI|ra2a;sjo|San Jose|9.928|-84.091|CR|ra2a;lim|Limon|9.991|-83.030|CR|rap1;pty|Panama City|8.983|-79.517|PA|ra3ap;cln|Colon|9.359|-79.900|PA|rap1";
