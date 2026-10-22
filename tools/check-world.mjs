@@ -26,7 +26,7 @@ regionFiles.forEach(f=>{
     const lat=+la,lon=+lo;
     if(!isFinite(lat)||lat<-90||lat>90)err(`${f}: ${id} latitude "${la}" is out of range`);
     if(!isFinite(lon)||lon<-180||lon>180)err(`${f}: ${id} longitude "${lo}" is out of range`);
-    if(!/^[A-Za-z]$/.test(cc))err(`${f}: ${id} country code "${cc}" should be one letter`);
+    if(!/^[A-Za-z]{1,2}$/.test(cc))err(`${f}: ${id} country code "${cc}" should be one or two letters`);
     if(!/^[rahplc0-9]*$/.test(fl))err(`${f}: ${id} flags "${fl}" use unknown letters (allowed: r a h p l and a digit)`);
     rows.push({id,name:nm,la:lat,lo:lon,cc,fl,region:name,file:f});
     regions[name].push(id);
