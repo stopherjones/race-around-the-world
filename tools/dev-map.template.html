@@ -23,13 +23,15 @@
 <body>
 <div id="map"></div>
 <div id="panel">
-  <h1>Dev map</h1>
+  <h1><span id="toggle" title="Minimise / expand" style="cursor:pointer;user-select:none">&#9662;</span> Dev map</h1>
+  <div id="body">
   <div class="muted" id="counts"></div>
   <input id="search" placeholder="Find a place" list="places">
   <datalist id="places"></datalist>
   <div id="layers"></div>
   <label><input type="checkbox" id="labels" checked> Place names</label>
   <div id="info" class="muted">Click a place to see its links.</div>
+  </div>
 </div>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script>
@@ -153,6 +155,12 @@ function applyFilters() {
   map.setFilter("links", ["in", ["get", "m"], ["literal", on]]);
 }
 document.querySelectorAll("[data-mode]").forEach(c => c.addEventListener("change", applyFilters));
+document.getElementById("toggle").addEventListener("click", () => {
+  const body = document.getElementById("body");
+  const hidden = body.style.display === "none";
+  body.style.display = hidden ? "" : "none";
+  document.getElementById("toggle").innerHTML = hidden ? "&#9662;" : "&#9656;";
+});
 document.getElementById("labels").addEventListener("change", e => {
   map.setLayoutProperty("labels", "visibility", e.target.checked ? "visible" : "none");
 });
