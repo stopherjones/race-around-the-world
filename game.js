@@ -200,16 +200,21 @@ function fillFlavour(){
  flavourFor(c).then(function(t){var cur=document.getElementById("flavour-text");if(cur&&S&&S.goal===key)cur.textContent=t},function(){var cur=document.getElementById("flavour-text");if(cur&&S&&S.goal===key)cur.textContent="An introduction isn't available right now."})
 }
 var ROUTE_FLAVOUR={};
+// One combined sentence for the journey, built from the modes on offer. No place names beyond the start and finish.
 function routeFlavourFallback(from,to,options){
- var modes={};(options||[]).forEach(function(o){(o.modes||[]).forEach(function(m){modes[m]=1})});
- var rail=modes.rail||modes.hsr,budget=[],choices=[];
- if(rail)choices.push("quicker trains"+(modes.hsr?" through the high-speed network":""));
- if(modes.air)choices.push("flights");
- if(modes.bus||modes.coach)budget.push("long-distance buses");
- if(modes.ferry)budget.push("ferry crossings");
- if(budget.length)choices.push((rail?"cheaper ":"")+budget.join(" and "));
- if(!choices.length)choices.push("a mix of local connections and longer services");
- return"To get from "+from+" to "+to+", you could take "+choices.join(" or ")+". Choose where to go next at each stop and keep an eye on your time and money."
+ var kinds={};(options||[]).forEach(function(o){(o.modes||[]).forEach(function(m){kinds[m]=1})});
+ var pick=function(list){return list[mkHash(from+">"+to+">"+(options||[]).length)%list.length]};
+ var fast=kinds.hsr?"fast, reliable but expensive trains":kinds.rail?"quicker trains, at a premium":kinds.air?"flights":"the quickest connections on offer";
+ var slow;
+ if(kinds.ferry&&(kinds.bus||kinds.coach||kinds.shared))slow="the tourist route along the coast, joining up local buses and ferries";
+ else if(kinds.ferry)slow="the coastal route by ferry, with some waiting for sailings";
+ else if(kinds.shared)slow="the cheap way, joining up shared minibuses and local buses";
+ else if((kinds.bus||kinds.coach)&&kinds.rail)slow="the tourist route, joining up local buses and trains";
+ else if(kinds.bus||kinds.coach)slow="cheaper long-distance buses, which take their time";
+ else slow=null;
+ var verb=pick(["you can opt for ","you could take ","you can choose "]);
+ if(!slow)return"To get from "+from+" to "+to+", "+pick(["you can take ","you could travel by "])+fast+".";
+ return"To get from "+from+" to "+to+", "+verb+fast+", or "+slow+"."
 }
 function routeFlavourFor(from,to,options){
  var modes={};(options||[]).forEach(function(o){(o.modes||[]).forEach(function(m){modes[m]=1})});
@@ -226,7 +231,7 @@ function routeFlavourFor(from,to,options){
 function fillRouteFlavour(){
  var el=document.getElementById("route-flavour");if(!el||!S||S.phase!=="routes")return;
  var from=S.start=="lon"?"London":N[S.start].n,to=N[S.goal].n,key=S.start+">"+S.goal;
- routeFlavourFor(from,to,S.opts).then(function(text){var current=document.getElementById("route-flavour");if(current&&S&&S.phase==="routes"&&S.start+">"+S.goal===key)current.textContent=text})
+ var current=document.getElementById("route-flavour");if(current)current.textContent=routeFlavourFallback(from,to,S.opts)
 }
 // ============ REST DAY ============
 // After a leg, the rest day is a free day in the arrival town: trade at the stall, find buyers, then leave at 8am on day x+2.
@@ -380,7 +385,7 @@ function planDone(skip){
 function planHtml(){var p=S.plan;if(!p||p.skipped)return"";return"<p class='res'><b>Planning: "+Math.round(p.km)+" km off</b><span>You lost "+mins(p.lost)+".</span></p>"}
 function routesPanel(){
  var next=departNeeded()?departChoicesHtml():"<button class='btn' onclick='beginTravel()'>Begin journey</button>";
- return"<div class='panel'><h2>Where to?</h2><p class='mute'>Your journey begins in "+esc(N[S.start].n)+" and ends in "+esc(N[S.goal].n)+".</p><p class='route-flavour' id='route-flavour' aria-live='polite'>Thinking about the journey ahead…</p><p class='mute'>Target: arrive by "+stamp(S.target||0)+" to earn the £"+BONUS+" bonus. Choose individual services as you travel.</p>"+next+"</div>"
+ return"<div class='panel'><h2>Where to?</h2><p class='mute'>Your journey begins in "+esc(N[S.start].n)+" and ends in "+esc(N[S.goal].n)+".</p><p class='route-flavour' id='route-flavour' aria-live='polite'>"+esc(routeFlavourFallback(S.start=="lon"?"London":N[S.start].n,N[S.goal].n,S.opts))+"</p><p class='mute'>Target: arrive by "+stamp(S.target||0)+" to earn the £"+BONUS+" bonus. Choose individual services as you travel.</p>"+next+"</div>"
 }
 function bindModes(){
  document.querySelectorAll(".modebar [data-mode]").forEach(function(b){
