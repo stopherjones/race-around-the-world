@@ -1,0 +1,3 @@
+// Region: United States (mainland). Places as id|name|lat|lon|country|flags, separated by ;
+// Honolulu and Los Angeles are in the Hawaii region.
+var REGION_USA="nyc|New York|40.713|-74.006|US|ra3ap;dca|Washington DC|38.907|-77.037|US|ra3a;bos|Boston|42.360|-71.058|US|ra3ap;chg|Chicago|41.878|-87.630|US|ra3ap;mia|Miami|25.762|-80.192|US|ra3ap;atl|Atlanta|33.749|-84.388|US|ra3a;dal|Dallas|32.777|-96.797|US|ra3a;hou|Houston|29.760|-95.370|US|ra3ap;dnv|Denver|39.739|-104.990|US|ra3a;las|Las Vegas|36.170|-115.140|US|ra3a;sfo|San Francisco|37.775|-122.419|US|ra3ap;sea|Seattle|47.606|-122.332|US|ra3ap;msy|New Orleans|29.951|-90.072|US|ra2ap";
