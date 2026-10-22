@@ -1,0 +1,3 @@
+// Region: Indonesia (Java, Sumatra, Sulawesi, Bali and the Indonesian part of Borneo). Places as id|name|lat|lon|country|flags, separated by ;
+// Each island is its own landmass, so links between islands are ferries. Landmass for each place is set in PLACE_LANDMASS in game.js.
+var REGION_INDONESIA="jkt|Jakarta|-6.208|106.846|ID|ra3ap;bdo|Bandung|-6.914|107.609|ID|ra2a;jog|Yogyakarta|-7.797|110.370|ID|ra2a;sub|Surabaya|-7.257|112.752|ID|ra3ap;mdan|Medan|3.595|98.672|ID|ra3ap;plm|Palembang|-2.991|104.756|ID|ra2ap;mks|Makassar|-5.147|119.433|ID|ra2ap;den|Denpasar|-8.650|115.216|ID|ra2ap;ppt|Pontianak|-0.027|109.343|ID|ra2ap;bpn|Balikpapan|-1.268|116.829|ID|ra2ap";

@@ -1,0 +1,3 @@
+// Region: Australia. Places as id|name|lat|lon|country|flags, separated by ;
+// Australia is its own landmass. The Darwin and Cairns sea links are ferries from Kupang and Port Moresby, assumed for the game.
+var REGION_AUSTRALIA="drw|Darwin|-12.463|130.845|AU|ra2ap;cns|Cairns|-16.918|145.778|AU|ra2ap;asp|Alice Springs|-23.698|133.880|AU|ra2a;bne|Brisbane|-27.470|153.026|AU|ra3ap;syd|Sydney|-33.869|151.209|AU|ra3ap;cbr|Canberra|-35.281|149.128|AU|ra2a;mel|Melbourne|-37.814|144.963|AU|ra3ap;adl|Adelaide|-34.929|138.601|AU|ra2ap;per|Perth|-31.950|115.860|AU|ra3ap;hba|Hobart|-42.882|147.327|AU|ra2ap";
