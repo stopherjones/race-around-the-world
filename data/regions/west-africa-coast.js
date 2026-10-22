@@ -1,2 +1,2 @@
 // Region: Ghana and Nigeria. Places as id|name|lat|lon|country|flags, separated by ;
-var REGION_WEST_AFRICA_COAST="acc|Accra|5.603|-0.187|P|ra3ap;kum|Kumasi|6.688|-1.624|P|ra2;tkd|Takoradi|4.896|-1.775|P|rp2;lag|Lagos|6.524|3.379|I|ra3ap;abj|Abuja|9.076|7.399|I|ra3a;kan|Kano|12.000|8.517|I|ra2a;phc|Port Harcourt|4.815|7.049|I|ra2ap";
+var REGION_WEST_AFRICA_COAST="acc|Accra|5.603|-0.187|P|ra3ap;kum|Kumasi|6.688|-1.624|P|ra2;tkd|Takoradi|4.896|-1.775|P|rp2;lag|Lagos|6.524|3.379|I|ra3ap;abj|Abuja|9.076|7.399|I|ra3a;kan|Kano|12.000|8.517|I|ra2a;phc|Port Harcourt|4.815|7.049|I|ra2ap;abd|Abidjan|5.360|-4.008|n|ra3ap;bkk|Bouake|7.690|-5.030|n|ra2;lom|Lome|6.138|1.212|o|ra2ap;cot|Cotonou|6.365|2.418|p|ra2ap";
