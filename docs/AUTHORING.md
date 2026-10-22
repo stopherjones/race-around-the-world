@@ -47,7 +47,7 @@ Ferries and other fixed links go in `CROSSINGS` in `data.js`, one per `|`:
 - **hours, cost:** travel time and fare. Cost is optional for ferries and uses the default if left out.
 - **departHour everyNDays:** for ferries with a timetable. `22.5 1` means a sailing at 22:30 every day. `8.5 2` means 08:30 every other day.
 
-Nearby places in different regions are linked automatically, so a border only needs a crossing if there's no short rail or bus link across it.
+Nearby places in different regions are linked automatically, so a border only needs a crossing if there's no short rail or bus link across it. A hand-set crossing also counts as a link between its two regions, so a region with no nearby neighbour, such as an island, only needs one crossing to be reachable.
 
 ## Things to check
 
