@@ -62,3 +62,13 @@ Nearby places in different regions are linked automatically, so a border only ne
     node tools/build-gazetteer.mjs     # rebuild the place index
     node tools/build-adjacency.mjs     # rebuild the border table
     node tools/check-world.mjs         # check everything
+
+## Islands
+
+Islands are linked by ferry only, so each island group is kept apart from the mainland in `G()` in `game.js` (see `ISLAND_G`), and the 650 km road and rail link does not cross the sea.
+
+- **Regular services** (Cape Verde inter-island, Comoros to Madagascar, Antsiranana to Mahajanga) use a timetable: departure hour and every N days.
+- **Ad hoc passenger boarding** (on cargo or cruise vessels, for Sao Tome, Mauritius and the Seychelles) use a higher fare, a longer time and a sailing every 4 to 7 days, so the game prices and times them as occasional rather than scheduled.
+
+Country codes can be one or two letters. Two-letter codes such as `CV` and `MG` are used for islands once the single letters run out.
+
