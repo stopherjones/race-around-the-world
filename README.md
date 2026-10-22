@@ -26,7 +26,6 @@ In `data.js`, each place is `id|Name|lat|lon|country|flags`. Flags: `r` rail, `a
 ## Last-mile challenge
 When you reach the destination, a landmark photo from Wikipedia appears and you pin where it was taken. The photo is a notable sight within 10 km of the destination city.
 Distance off becomes time lost (4.5 km/h) and is added to your arrival time. If the photo or map cannot load, a "Skip the last mile" button lets you finish with no penalty.
-If the photo or map cannot load, a "Skip the last mile" button lets you finish with no penalty.
 
 ## Starting a journey
 Every journey starts in Trafalgar Square, London, with a random city 1,000 to 2,000 km away (`MIN_KM` / `MAX_KM` in `game.js`). Cities are places of size 2 or 3 plus the `EXTRA_CITIES` list in `data.js`.
@@ -35,4 +34,4 @@ Every journey starts in Trafalgar Square, London, with a random city 1,000 to 2,
 Before leaving, you see the destination's name and tap where you think it is on the unlabelled map. Error converts to time at `PLAN_KM_PER_H` (150 km per hour, capped at `PLAN_MAX_H` = 8 h), which delays your departure.
 
 ## Choosing how to travel
-Before setting off, a short overview introduces the kinds of connections available between your start and destination. It is generated through the Groq proxy, with a local fallback if the service is unavailable. Then choose individual services as you travel; fares and timetables are shown at each stop.
+Before setting off, a short overview introduces the kinds of connections available between your start and destination. The overview is a built-in sentence, with no AI call. Then choose individual services as you travel; fares and timetables are shown at each stop. Destination introductions are generated through the Groq proxy (`FLAVOUR_URL` in `game.js`).
