@@ -89,7 +89,7 @@ function buy(k){
  }
  function fail(msg){
   $("mapwrap").hidden=true;
-  $("clue").innerHTML="<h2>Couldn't load the last-mile challenge</h2><p class='mute'>"+esc(msg||"Check your connection.")+"</p><div class='row'><button class='btn' id='skip'>Skip the last mile</button></div>";
+  $("clue").innerHTML="<h2>Couldn't load the checkpoint challenge</h2><p class='mute'>"+esc(msg||"Check your connection.")+"</p><div class='row'><button class='btn' id='skip'>Skip the last mile</button></div>";
   $("skip").onclick=function(){finish({skipped:true,lost:0})}
  }
  function finish(r){var f=cb;cb=null;if(f)f(r)}
@@ -116,12 +116,15 @@ function bindPhoto(){
  box.onpointerup=end;box.onpointercancel=end;box.onpointerleave=end;
  apply()
 }
+var PRE={};
+// Fetch a landmark photo ahead of time, so the challenge can start straight away
+function prefetch(cfg){if(!cfg.landmark||PRE[cfg.name])return;var p=getNamed(cfg);PRE[cfg.name]=p;p.catch(function(){delete PRE[cfg.name]})}
 function start(cfg,onDone){
   reset();build();cb=onDone;
   R={cfg:cfg,done:false,hinted:false,bought:{},cost:0,clueMode:cfg.clueMode||"pay"};
  if(cfg.interim&&$("hintbtn"))$("hintbtn").hidden=true;
   $("clue").innerHTML="<h2>Finding the spot in "+esc(cfg.name)+"...</h2>";
-  MAPX.load().then(function(){return cfg.landmark?getNamed(cfg):getLandmark([cfg.name,"",cfg.lat,cfg.lon],cfg.level||"mixed")}).then(function(lm){
+  MAPX.load().then(function(){return cfg.landmark?(PRE[cfg.name]||getNamed(cfg)):getLandmark([cfg.name,"",cfg.lat,cfg.lon],cfg.level||"mixed")}).then(function(lm){
    R.lm=lm;
    $("clue").innerHTML="<h2>Where was this photo taken"+(cfg.landmark?"":" in "+esc(cfg.name))+"?</h2><div class='pz'><div class='pzbox'><img class='lmphoto' alt='A landmark near "+esc(cfg.name)+"' src='"+esc(lm.src)+"'></div><div class='zc'><button type='button' id='pzin'>+</button><button type='button' id='pzout'>\u2212</button><button type='button' id='pzreset'>Reset</button></div></div><p class='credit'>Photo from Wikipedia (Wikimedia Commons). Credit and licence are on the article, linked after you guess.</p>";
    $("mapwrap").hidden=false;bindPhoto();
@@ -154,5 +157,5 @@ function start(cfg,onDone){
   r.innerHTML="<p class='big2'>"+(R.cfg.interim?"Good work":tier(m))+"</p><p>It was <b>"+esc(t.title)+"</b> (<a href='"+esc(link)+"' target='_blank' rel='noopener'>article, photo credit and licence</a>).</p><p>"+(R.cfg.interim?"You were "+distText(m)+" off, you worked for "+INTERIM_HOURS+" hours and earned \u00a3"+interimPay(m):"You were "+distText(m)+" off: "+mins(mine)+" lost"+(extra>0?" (including "+mins(extra)+" on clues)":""))+".</p><div class='row'><button class='btn' id='lmdone'>Continue</button></div>";
   $("lmdone").onclick=function(){finish({title:t.title,distText:distText(m),distM:m,lost:mine})}
  }
- return{start:start,attach:attach,reset:reset}
+ return{start:start,attach:attach,reset:reset,prefetch:prefetch}
 })();

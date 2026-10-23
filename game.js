@@ -6,7 +6,7 @@ var CARDS={rail:["Rail pass","Train and fast-train fares cost 30% less.",1],prio
 
 function hav(a,b){var A=N[a],B=N[b],r=Math.PI/180,x=(B.lo-A.lo)*r*Math.cos((A.la+B.la)/2*r),y=(B.la-A.la)*r;return Math.sqrt(x*x+y*y)*6371}
 function arrow(a,b){if(a==b)return"\u2713";var A=N[a],B=N[b],r=Math.PI/180,x=(B.lo-A.lo)*Math.cos((A.la+B.la)/2*r),y=B.la-A.la,i=Math.round(((Math.atan2(x,y)/r+360)%360)/45)%8;return["\u2191 N","\u2197 NE","\u2192 E","\u2198 SE","\u2193 S","\u2199 SW","\u2190 W","\u2196 NW"][i]}
-function status(){if(S.phase==="rest")return["\ud83d\udecf\ufe0f","Rest day"];if(S.over)return["\ud83c\udfc1","Finished"];if(S.phase=="plan")return["\ud83e\udded","Planning"];if(S.phase=="routes")return["\ud83d\uddfa\ufe0f","Choosing a route"];if(S.phase=="lastmile")return["\ud83d\udccd","Last mile"];if(S.phase=="interim")return["\ud83d\udccd","Last-mile work"];if(S.phase=="stay")return["\ud83d\udecf\ufe0f","Finding a bed"];return{r:["\ud83d\ude86","Train station"],b:["\ud83d\ude8c","Bus station"],f:["\u26f4\ufe0f","Ferry terminal"],a:["\u2708\ufe0f","Airport"]}[S.term]}
+function status(){if(S.phase==="arrive")return["\ud83c\udf89","Arrived"];if(S.phase==="rest")return["\ud83d\udecf\ufe0f","Rest day"];if(S.over)return["\ud83c\udfc1","Finished"];if(S.phase=="plan")return["\ud83e\udded","Planning"];if(S.phase=="routes")return["\ud83d\uddfa\ufe0f","Choosing a route"];if(S.phase=="lastmile")return["\ud83d\udccd","Checkpoint"];if(S.phase=="interim")return["\ud83d\udccd","Checkpoint work"];if(S.phase=="stay")return["\ud83d\udecf\ufe0f","Finding a bed"];return{r:["\ud83d\ude86","Train station"],b:["\ud83d\ude8c","Bus station"],f:["\u26f4\ufe0f","Ferry terminal"],a:["\u2708\ufe0f","Airport"]}[S.term]}
 function dir(a,b){var A=N[a],B=N[b],r=Math.PI/180,x=(B.lo-A.lo)*Math.cos((A.la+B.la)/2*r),y=B.la-A.la,g=(Math.atan2(x,y)/r+360)%360;return["north","north-east","east","south-east","south","south-west","west","north-west"][Math.round(g/45)%8]}
 function val(a,b,m){
  var d=hav(a,b)*1.25,k=IDX[N[a].c],uk=N[a].c=="U",h,c;
@@ -161,9 +161,10 @@ function fitJourney(map){
  map.fitBounds(b,{padding:48,maxZoom:8,duration:0})
 }
 function updateJourney(map){
+ MJ.cur=map;
  jvis(map,true);
  var src=function(id,d){var s=map.getSource(id);if(s)s.setData(d)};
- src("j-me",lnf(S.path.map(ll)));src("j-opt",S.over&&S.opt?lnf(S.opt.names.map(ll)):fc([]));
+ src("j-me",MJ.anim?animLine():lnf(S.path.map(ll)));src("j-opt",S.over&&S.opt?lnf(S.opt.names.map(ll)):fc([]));
  var o=[];if(!S.over&&S.phase=="move"){var all=opts();vis().show.forEach(function(i){o.push(ptf(ll(all[i].to),{name:N[all[i].to].n}))})}
  src("j-opts",fc(o));
  src("j-pts",fc([ptf(ll(S.start),{kind:"start",label:""}),ptf(ll(S.goal),{kind:"goal",label:N[S.goal].n}),ptf(ll(S.loc),{kind:"me",label:S.loc==S.goal?"":N[S.loc].n})]));
@@ -302,7 +303,9 @@ function restVisit(){
  var needStall=!m.stall,todo=S.camp.pack.filter(function(x){return!x.buyer});
  if(m.finding||(!needStall&&!todo.length)){render();return}
  m.finding=true;render();
- mkAsk(mkVisitPrompt(needStall,todo))
+ var pre=MK_PRE&&needStall&&MK_PRE.key===mkCacheKey()&&todo.every(function(x){return MK_PRE.uids.indexOf(x.uid)>=0})?MK_PRE.promise:null;
+ MK_PRE=null;
+ (pre||mkAsk(mkVisitPrompt(needStall,todo)))
   .then(function(j){mkApply(j,needStall,todo)})
   .catch(function(){mkFallback(needStall,todo)})
   .then(function(){m.finding=false;render()});
@@ -450,7 +453,7 @@ function jcol(names,modes,times,nights,label){
 function jrow(l,a,b){return"<div class='jr'><span>"+l+"</span><b>"+a+"</b><b>"+b+"</b></div>"}
 function journalHtml(){
  var p=S.plan,lm=S.lm,pl=p?(p.skipped?"skipped":mins(p.lost)):"\u2013",ll2=lm?(lm.skipped?"skipped":mins(lm.lost)):"\u2013";
- return"<div class='panel jrnl-wrap'><h2>Journal</h2><div class='jrnl'>"+jcol(S.path,S.modes,S.times,S.nights,"Your journey")+"</div><div class='jsum'>"+jrow("Planning",pl,"")+jrow("Last mile",ll2,"")+jrow("Total time",mins(S.h),"target "+mins(S.target||0))+jrow("Spend","\u00a3"+Math.round(S.spent),"")+"</div></div>"
+ return"<div class='panel jrnl-wrap'><h2>Journal</h2><div class='jrnl'>"+jcol(S.path,S.modes,S.times,S.nights,"Your journey")+"</div><div class='jsum'>"+jrow("Planning",pl,"")+jrow("Checkpoint",ll2,"")+jrow("Total time",mins(S.h),"target "+mins(S.target||0))+jrow("Spend","\u00a3"+Math.round(S.spent),"")+"</div></div>"
 }
 function journalPanelHtml(){
  var h=journalHtml()+"<div class='panel'><h2>Travel notes</h2><ol class='log' reversed>";
@@ -546,7 +549,7 @@ function run(steps,events){
 }
 function newJourney(a,b,air,evn,lm){
  var camp=NEXT_CAMP||{money:0,legs:1,start:0,log:[],pack:[],seed:(Math.random()*1e9)|0,sales:{},nextUid:0};NEXT_CAMP=null;
- S={start:a,goal:b,air:air,ev:evn,camp:camp,setup:{air:air,evn:evn,lm:lm},lmOn:!!(lm&&lm.on),planOn:!!(lm&&lm.plan),lmClue:lm&&lm.clue,lmLevel:lm&&lm.level,rooms:[],wait:0,tired:false,pend:null,loc:a,h:0,spent:0,cards:[],path:[a],times:[0],modes:[],nights:[],rev:{},log:["Begin your journey from "+(a=="lon"?"Trafalgar Square":N[a].n)+" to "+N[b].n+"."],phase:(lm&&lm.plan)?"plan":"routes",draft:[],over:null};
+ S={legNotes:[],start:a,goal:b,air:air,ev:evn,camp:camp,setup:{air:air,evn:evn,lm:lm},lmOn:!!(lm&&lm.on),planOn:!!(lm&&lm.plan),lmClue:lm&&lm.clue,lmLevel:lm&&lm.level,rooms:[],wait:0,tired:false,pend:null,loc:a,h:0,spent:0,cards:[],path:[a],times:[0],modes:[],nights:[],rev:{},log:["Begin your journey from "+(a=="lon"?"Trafalgar Square":N[a].n)+" to "+N[b].n+"."],phase:(lm&&lm.plan)?"plan":"routes",draft:[],over:null};
  S.term=terms(a)[0];S.arr=0;var B=camp.money+INCOME,p=plan(0,B),t=0;
  while(!p&&t++<4){B=Math.round(B*1.5);p=plan(0,B)}
  if(!p){S=null;return false}
@@ -569,14 +572,17 @@ function go(i){
 }
 function hop(i,dep){
  var o=opts()[i];if(!o||o.c>S.cash){S.phase="move";S.pend=null;return render()}
+ var from=S.loc;
  var tr=S.tired?1:0;S.tired=false;S.pend=null;S.phase="move";
- if(tr)say("Tired after a poor night: 1 h lost.");
- S.h=dep+o.h+tr;S.cash-=o.c;S.spent+=o.c;S.loc=o.to;S.path.push(o.to);S.modes.push(o.m);(S.times=S.times||[0]).push(S.h);S.nights.push(S.slept?1:0);S.slept=0;
+ if(tr){say("Tired after a poor night: 1 h lost.");S.legNotes.push("Tired after a poor night: 1 h lost.")}
+ S.h=dep+o.h+tr;S.cash-=o.c;S.spent+=o.c;S.loc=o.to;S.path.push(o.to);S.modes.push(o.m);
+ if(!reduceMotion()){MJ.anim={from:from,to:o.to,t0:performance.now(),dur:1400};animRoute()}(S.times=S.times||[0]).push(S.h);S.nights.push(S.slept?1:0);S.slept=0;
  var x=S.ev?ev(roll()):ev(3),t=x.t;
  if(x.c>0||x.h>0){if(has("fixer")){drop("fixer");x={h:0,c:0};t="Your fixer smooths over the trouble."}}
  S.h=Math.max(0,S.h+x.h);S.cash=Math.max(0,S.cash-x.c);S.spent+=x.c;
+ if(t!="An uneventful hop.")S.legNotes.push(t);
  say(clk(S.h)+": "+(o.m=="shared"?sharedName(S.loc):MODE[o.m])+" to "+N[o.to].n+" ("+o.h+" h, \u00a3"+o.c+"). "+t);
- if(S.loc==S.goal){S.arrH=S.h;if(S.lmOn){S.phase="lastmile";S.draft=[];startLM();return render()}settleBonus();S.over="done";return render()}
+ if(S.loc==S.goal){S.arrH=S.h;arrivalPrefetch();S.phase="arrive";return render()}
  S.arr=S.h;S.term=grp(o.m);
  if(!S.ev){S.draft=[];pick(null);return}
  var pool=Object.keys(CARDS).filter(function(k){return!(CARDS[k][2]&&has(k))});
@@ -588,6 +594,7 @@ function stay(k){
  if(c>S.cash)return;
  S.cash-=c;S.spent+=c;var poor=k<0||(rm.q==0&&roll()<=2);S.tired=poor;
  say((k<0?"No room found: you spent the night at the station in ":"Stayed in a "+rm.n.toLowerCase()+" in ")+N[S.loc].n+(c?" (\u00a3"+c+")":"")+"."+(poor?" You slept badly.":""));
+ S.legNotes.push((k<0?"Spent the night at the station in ":"Stayed a night in ")+N[S.loc].n+(poor?", slept badly":"")+".");
  S.slept=1;hop(i,sc.dep)
 }
 function look(){S.h+=.3;S.rev[S.loc+S.term]=1;say(clk(S.h)+": You ask around and check timetables at "+N[S.loc].n+".");render()}
@@ -602,7 +609,7 @@ function pick(k){
 // Campaign: each new leg gives a fixed income on top of any money carried over from the last leg. Tune here.
 var INCOME=350,BONUS=150,PLAN_ALLOW=1.5,LM_ALLOW=1.5,NEXT_CAMP=null;
 // Target: the median of the reasonable routes plus a planning allowance. Arriving by then earns BONUS on top of INCOME.
-// Interim last-mile work: at a culture-4+ city you can stop for a photo challenge. It costs 2 hours whatever the result.
+// Interim checkpoint work: at a culture-4+ city you can stop for a photo challenge. It costs 2 hours whatever the result.
 // Payout: £100 for a spot-on guess, falling to £50 at 2 km out. A city pays out once per campaign, and only one stop per leg.
 var INTERIM_HOURS=2,PAY_MIN=50,PAY_MAX=100;
 function interimPay(m){
@@ -622,7 +629,7 @@ function needsEmergencyWork(){return!canAffordOnward()&&canAffordTerminalChange(
 function interimLM(){
  if(!canInterim())return;
  S.h+=INTERIM_HOURS;S.interimUsed=1;S.interimCity=S.loc;S.phase="interim";
- say(clk(S.h)+": Stopped in "+N[S.loc].n+" for last-mile work ("+INTERIM_HOURS+" h).");
+ say(clk(S.h)+": Stopped in "+N[S.loc].n+" for checkpoint work ("+INTERIM_HOURS+" h).");
  startInterimLM();render()
 }
 function startInterimLM(){MJ.resetView=true;
@@ -630,11 +637,11 @@ function startInterimLM(){MJ.resetView=true;
  MAPX.setLabels(true);LM.start({name:n.n,lat:n.la,lon:n.lo,landmark:false,level:"mixed",clueMode:"off",interim:true},function(r){
   var pay=r.skipped?0:interimPay(r.distM);
   S.cash+=pay;S.camp.paid=((S.camp&&S.camp.paid)||[]).concat([S.interimCity]);
-  say(clk(S.h)+": Last-mile work in "+n.n+": "+(r.skipped?"skipped":"earned \u00a3"+pay+" ("+r.distText+" off)")+".");
+  say(clk(S.h)+": Checkpoint work in "+n.n+": "+(r.skipped?"skipped":"earned \u00a3"+pay+" ("+r.distText+" off)")+".");
   S.phase="move";render()
  })
 }
-// The on-time bonus is decided once, when the leg's total time (planning, travel and last mile) is known
+// The on-time bonus is decided once, when the leg's total time (planning, travel and checkpoint) is known
 function settleBonus(){
  if(S.bonusSettled)return;S.bonusSettled=1;
  if(S.h<=S.target+1e-9){S.bonus=1;S.cash+=BONUS;say(clk(S.h)+": Arrived on time: +\u00a3"+BONUS+".")}else S.bonus=0
@@ -800,13 +807,70 @@ function res(l,r){return"<p class='res'><b>"+l+": "+r.h.toFixed(1)+" h, \u00a3"+
 
 function mins(h){var m=Math.round(h*60);return m<60?m+" min":Math.floor(m/60)+" h "+(m%60)+" min"}
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+// ============ ARRIVAL, ROUTE DRAWING AND PREFETCH ============
+function reduceMotion(){return !!(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches)}
+// A point part of the way along the great circle from a to b, both as [lon, lat]
+function gcPoint(a,b,f){
+ var r=Math.PI/180;
+ function vec(p){var la=p[1]*r,lo=p[0]*r;return[Math.cos(la)*Math.cos(lo),Math.cos(la)*Math.sin(lo),Math.sin(la)]}
+ var A=vec(a),B=vec(b),c=Math.max(-1,Math.min(1,A[0]*B[0]+A[1]*B[1]+A[2]*B[2])),d=Math.acos(c);
+ if(d<1e-9)return a;
+ var s1=Math.sin((1-f)*d)/Math.sin(d),s2=Math.sin(f*d)/Math.sin(d);
+ var x=s1*A[0]+s2*B[0],y=s1*A[1]+s2*B[1],z=s1*A[2]+s2*B[2];
+ return[Math.atan2(y,x)/r,Math.atan2(z,Math.hypot(x,y))/r];
+}
+// The journey so far, plus the new leg drawn part of the way along
+function animLine(){
+ var A=MJ.anim,f=Math.min(1,(performance.now()-A.t0)/A.dur),e=1-Math.pow(1-f,3),n=Math.max(2,Math.ceil(48*e)),pts=S.path.slice(0,-1).map(ll);
+ for(var i=0;i<=n;i++)pts.push(gcPoint(ll(A.from),ll(A.to),e*i/n));
+ return lnf(pts);
+}
+function animRoute(){
+ var A=MJ.anim;if(!A)return;var m=MJ.cur;
+ if(m){var src=m.getSource&&m.getSource("j-me");if(src)src.setData(animLine())}
+ if(performance.now()-A.t0<A.dur)requestAnimationFrame(animRoute);
+ else{MJ.anim=null;if(m)updateJourney(m)}
+}
+function arrivalPrefetch(){
+ var g=N[S.goal];
+ if(S.lmOn&&g.l&&window.LM&&LM.prefetch)LM.prefetch({name:g.n,lat:g.la,lon:g.lo,landmark:g.l});
+ prefetchMarket();
+}
+var MK_PRE=null;
+function mkCacheKey(){return mkCity()+"|"+mkDayNo()}
+// Start the market's stock and buyers for the pack as it stands, so the visit is ready when the player gets there
+function prefetchMarket(){
+ var todo=S.camp.pack.filter(function(x){return!x.buyer});
+ var entry={key:mkCacheKey(),uids:todo.map(function(x){return x.uid}),promise:mkAsk(mkVisitPrompt(true,todo))};
+ MK_PRE=entry;
+ entry.promise.catch(function(){if(MK_PRE===entry)MK_PRE=null});
+}
+function arriveHtml(){
+ var g=N[S.goal].n,on=S.h<=S.target+1e-9,notes=S.legNotes||[];
+ var status=on?"You arrive on time":"You arrive "+mins(S.h-S.target)+" late";
+ var slept=notes.some(function(t){return /slept badly|Tired/.test(t)});
+ var nights=(S.nights||[]).reduce(function(a,b){return a+b},0);
+ var lines=[slept?"You are tired after a poor night.":"You arrive rested."];
+ if(nights)lines.push("You spent "+nights+(nights==1?" night":" nights")+" on the road.");
+ var h="<div class='panel arrive'><p class='kicker'>Arrived "+esc(clk(S.h))+"</p><h2 class='arrive-h'>Welcome to "+esc(g)+"</h2><p class='big'>"+status+"</p>";
+ if(S.lmOn)h+="<p>You now need to find the checkpoint in "+esc(g)+". Your time may still change there.</p>";
+ h+="<p>"+lines.join(" ")+"</p>";
+ if(notes.length)h+="<h3>On the way</h3><ul class='log'>"+notes.map(function(t){return"<li>"+esc(t)+"</li>"}).join("")+"</ul>";
+ h+="<button class='btn' onclick='arriveContinue()'>"+(S.lmOn?"Continue to Checkpoint":"Continue")+"</button></div>";
+ return h
+}
+function arriveContinue(){
+ if(S.phase!=="arrive")return;
+ if(S.lmOn){S.phase="lastmile";S.draft=[];startLM();return render()}
+ settleBonus();S.over="done";S.phase="move";render();
+}
 function startLM(){MJ.resetView=true;
  var g=N[S.goal];if(MJ.p)MJ.p.then(function(m){if(m)jvis(m,false)});
  MAPX.setLabels(true);LM.start({name:g.n,lat:g.la,lon:g.lo,landmark:g.l,level:S.lmLevel||"mixed",clueMode:"off"},function(r){
   LM.reset();S.lm=r;S.h+=r.lost;S.arrH=S.h;settleBonus();S.over="done";S.phase="move";
-  say(clk(S.h)+": Last mile: "+(r.skipped?"skipped.":r.title+", "+r.distText+" off, "+mins(r.lost)+" lost."));render()})
+  say(clk(S.h)+": Checkpoint: "+(r.skipped?"skipped.":r.title+", "+r.distText+" off, "+mins(r.lost)+" lost."));render()})
 }
-function lmHtml(){var r=S.lm;if(!r)return"";return"<p class='res'><b>Last mile: "+(r.skipped?"skipped":esc(r.title)+" ("+r.distText+" off)")+"</b><span>You lost "+mins(r.lost)+".</span></p>"}
+function lmHtml(){var r=S.lm;if(!r)return"";return"<p class='res'><b>Checkpoint: "+(r.skipped?"skipped":esc(r.title)+" ("+r.distText+" off)")+"</b><span>You lost "+mins(r.lost)+".</span></p>"}
 // Stranded: nothing at this stop can be paid for, including a cheaper change of terminal
 function stranded(){
  if(!S||S.over||S.phase!=="move")return false;
@@ -881,14 +945,14 @@ function render(msg){
  }else{
 
   if(S.cards.length)h+="<p class='hand'>Carrying: "+S.cards.map(function(k){return CARDS[k][0]}).join(", ")+"</p>";
-  if(S.phase=="lastmile"||S.phase=="interim")h+="<div class='panel'><h2>"+(S.phase=="interim"?"Last-mile work":"Last mile")+"</h2><div id='lm'></div></div>";else if(S.phase=="plan")h+=planPanel();else if(S.phase=="routes")h+=routesPanel();
-  if(S.phase=="lastmile"||S.phase=="interim"||S.phase=="plan"||S.phase=="routes"){}else if(S.phase=="stay"){var po=opts()[S.pend],ss=sched(po,S.loc,S.h);h+="<div class='panel'><h2>No service until "+clk(ss.dep)+"</h2><p style='margin:0 0 10px'>Where will you sleep in "+N[S.loc].n+"?</p>";S.rooms.forEach(function(x,k){h+="<button class='card' onclick='stay("+k+")'"+(x.c>S.cash?" disabled":"")+"><b>"+x.n+", \u00a3"+x.c+"</b><span>"+(x.q?"A proper night's rest.":"Cheap, but you may sleep badly.")+"</span></button>"});h+="<button class='card' onclick='stay(-1)'><b>Spend the night at the station</b><span>Free, but you will be tired: 1 h lost on the next leg.</span></button>";if(!S.rooms.length)h+="<p style='margin:0 0 10px'>No rooms are free in town tonight.</p>";h+="<button class='link' onclick='S.phase=\"move\";S.pend=null;render()'>Choose a different option</button></div>"}else if(S.phase=="draft"){
+  if(S.phase=="lastmile"||S.phase=="interim")h+="<div class='panel'><h2>"+(S.phase=="interim"?"Checkpoint work":"Checkpoint")+"</h2><div id='lm'></div></div>";else if(S.phase=="plan")h+=planPanel();else if(S.phase=="routes")h+=routesPanel();
+  if(S.phase=="lastmile"||S.phase=="interim"||S.phase=="plan"||S.phase=="routes"){}else if(S.phase=="arrive"){h+=arriveHtml();}else if(S.phase=="stay"){var po=opts()[S.pend],ss=sched(po,S.loc,S.h);h+="<div class='panel'><h2>No service until "+clk(ss.dep)+"</h2><p style='margin:0 0 10px'>Where will you sleep in "+N[S.loc].n+"?</p>";S.rooms.forEach(function(x,k){h+="<button class='card' onclick='stay("+k+")'"+(x.c>S.cash?" disabled":"")+"><b>"+x.n+", \u00a3"+x.c+"</b><span>"+(x.q?"A proper night's rest.":"Cheap, but you may sleep badly.")+"</span></button>"});h+="<button class='card' onclick='stay(-1)'><b>Spend the night at the station</b><span>Free, but you will be tired: 1 h lost on the next leg.</span></button>";if(!S.rooms.length)h+="<p style='margin:0 0 10px'>No rooms are free in town tonight.</p>";h+="<button class='link' onclick='S.phase=\"move\";S.pend=null;render()'>Choose a different option</button></div>"}else if(S.phase=="draft"){
    h+="<div class='panel'><h2>Pick one to take with you</h2>";
    S.draft.forEach(function(k){h+="<button class='card' onclick=\"pick('"+k+"')\"><b>"+CARDS[k][0]+"</b><span>"+CARDS[k][1]+"</span></button>"});
    h+="<button class='link' onclick='pick(null)'>Skip</button></div>"
   }else{
    var all=opts(),v=vis(),last="";
-   h+="<div class='panel'><h2>Where next?</h2>"+(canInterim()?"<button class='card' onclick='interimLM()'><b>"+(needsEmergencyWork()?"Earn money for the next fare":"Stop for last-mile work")+"</b><span>Spend 2 hours on a photo challenge in "+esc(N[S.loc].n)+" and earn £"+PAY_MIN+" to £"+PAY_MAX+".</span></button>":"");
+   h+="<div class='panel'><h2>Where next?</h2>"+(canInterim()?"<button class='card' onclick='interimLM()'><b>"+(needsEmergencyWork()?"Earn money for the next fare":"Stop for checkpoint work")+"</b><span>Spend 2 hours on a photo challenge in "+esc(N[S.loc].n)+" and earn £"+PAY_MIN+" to £"+PAY_MAX+".</span></button>":"");
    v.show.sort(function(a,b){var x=ORD.indexOf(all[a].m)-ORD.indexOf(all[b].m);return x||all[a].h-all[b].h});
    v.show.forEach(function(i){
     var o=all[i],sc=sched(o,S.loc,S.h);
