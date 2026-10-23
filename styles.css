@@ -200,3 +200,24 @@ body.map-min .mapctl{position:static;padding:2px 0}
 /* Full screen: the map covers the viewport below the header */
 body.map-full .mapdock{position:fixed;top:var(--hdr-h,0px);left:0;right:0;bottom:0;z-index:20;aspect-ratio:auto;max-height:none;height:auto;margin:0;background:var(--bg)}
 body.map-full .smap{border-radius:0;border:0}
+
+/* Wide screens: map on the left (60%), game panels on the right with the same swipe/tab navigation */
+@media (min-width:1100px){
+ body.mapscreen main#app{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);grid-template-rows:auto minmax(0,1fr);column-gap:16px;row-gap:0}
+ body.mapscreen .hdr{grid-column:1/-1}
+ body.mapscreen .mapdock{grid-column:1;grid-row:2;flex:none;aspect-ratio:auto;max-height:none;width:auto;height:100%;margin:0 0 8px}
+ body.mapscreen .actions{grid-column:2;grid-row:2;min-height:0;overflow-y:auto;padding-bottom:16px}
+ body.mapscreen .panel-nav{display:flex;gap:8px;margin:0 0 10px}
+ body.mapscreen .panel-hint{display:block;color:var(--mute);font-size:.8rem;text-align:center;margin:0 0 8px}
+ body.mapscreen .game-panels{display:flex;gap:12px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scrollbar-width:thin;padding-bottom:8px}
+ body.mapscreen .game-panel{flex:0 0 100%;min-width:0;scroll-snap-align:start;scroll-snap-stop:always}
+ body.map-min .mapdock{align-self:start;height:auto}
+}
+
+/* Guess prompt and Lock in button, grouped in a shaded box */
+.guessbox{background:color-mix(in srgb,var(--ink) 6%,var(--card));border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:0 0 12px}
+.guessbox .guessprompt{margin:0 0 10px;color:var(--ink);font-size:.92rem;line-height:1.5}
+.guessbox .btn{width:100%}
+
+/* Link buttons (things to do, market) share the game's green button style */
+a.btn{display:inline-block;text-decoration:none;text-align:center;box-sizing:border-box;width:100%}

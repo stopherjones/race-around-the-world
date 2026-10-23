@@ -111,16 +111,22 @@ function nextDep(o,from,t){if(o.dp!=null){var evd=o.ev||1,pd=hsh(from+o.to)%evd,
 // Local names for shared vehicles, by the country of departure (generic where not listed)
 var SHARED_NAME={M:"grand taxi",V:"dolmuş",K:"kombi",Y:"marshrutka",Q:"taxi brousse",Z:"car rapide",W:"matatu",A:"daladala",I:"danfo",P:"trotro",X:"minibus",J:"microbus",L:"shared taxi",O:"bush taxi",a:"matatu",b:"minibus",c:"bush taxi",d:"taxi",e:"minibus",f:"minibus",g:"kombi",h:"minibus",i:"chapa",j:"minibus taxi",k:"combi",l:"combi",m:"candongueiro",n:"gbaka",o:"taxi brousse",p:"wewe",q:"taxi brousse",r:"taxi brousse",s:"poda-poda",t:"taxi",u:"minibus",v:"toca-toca",w:"taxi",x:"taxi",y:"taxi",z:"taxi",CV:"aluguer",ST:"taxi",KM:"taxi-brousse",MG:"taxi-be",MU:"bus",SC:"taxi",GE:"marshrutka",AM:"marshrutka",AZ:"marshrutka",JO:"service",IL:"sherut",LB:"service",SY:"service",PS:"service",IQ:"taxi",IR:"service",SA:"taxi",AE:"taxi",QA:"taxi",BH:"taxi",KW:"taxi",OM:"taxi",YE:"service",KZ:"marshrutka",UZ:"marshrutka",TM:"taxi",KG:"marshrutka",TJ:"marshrutka",AF:"service",FI:"taxi",EE:"minibus",LV:"marshrutka",LT:"marshrutka",BY:"marshrutka",UA:"marshrutka",MD:"marshrutka",RO:"maxi-taxi",SK:"minibus",SI:"minibus",RU:"marshrutka",PT:"taxi",IS:"taxi",FO:"taxi",SH:"taxi",PK:"qingqi",IN:"shared jeep",NP:"micro",BD:"CNG",LK:"tuk-tuk",MM:"minibus",TH:"songthaew",LA:"minibus",KH:"minibus",VN:"xe khach",BT:"taxi",CN:"minibus",HK:"minibus",MO:"taxi",TW:"taxi",MN:"taxi",ID:"angkot",PH:"jeepney",MY:"minibus",SG:"bus",BN:"bus",TL:"minibus",KP:"bus",KR:"bus",JP:"bus",PG:"PMV",AU:"bus",NZ:"bus",FJ:"bus",WS:"bus",TO:"bus",VU:"bus",NC:"bus",SB:"bus",TV:"bus",NR:"bus",PW:"bus",MH:"bus",FM:"bus",KI:"bus",US:"bus",CA:"bus",MX:"combi",GT:"microbus",BZ:"bus",HN:"rapidito",SV:"microbus",NI:"chapa",CR:"bus",PA:"bus",CO:"colectivo",VE:"por puestos",EC:"buseta",PE:"combi",BO:"micro",BR:"onibus",PY:"bus",UY:"bus",AR:"colectivo",CL:"micro",GY:"minibus",SR:"minibus",CU:"almendron",JM:"route taxi",HT:"tap-tap",DO:"concho",BS:"jitney",TT:"maxi taxi",BB:"minibus"};
 function sharedName(from){return SHARED_NAME[N[from]&&N[from].c]||"shared minibus"}
+// A wait is an overnight if it lasts more than 4 hours and covers any part of the night (22:00 to 06:00 on the clock)
+function spansNight(t,d){if(d-t<=4)return false;for(var k=Math.floor((t-22)/24);k*24+14<d;k++){if(k*24+22>t)return true}return false}
 function sched(o,from,t){
  // Shared vehicles leave when full: the wait is an estimate, seeded so it is the same for everyone
  if(o.m=="shared"){var w=0.5+hsh(from+o.to+Math.floor(t))/333;return{dep:t+w,night:0,ns:0,nn:1}}
- if(o.hw>0&&o.dp>=0){var step=Math.max(24,o.hw),base=o.dp-8,dd=base+Math.max(0,Math.ceil((t-base)/step-1e-9))*step;if(dd<t-1e-9)dd+=step;var da=Math.floor((8+dd)/24)-Math.floor((8+t)/24);return{dep:dd,night:da>0&&dd-t>5?1:0,nn:Math.max(1,da),ns:0}}
+ // Timetabled crossings with a regular headway
+ if(o.hw>0&&o.dp>=0){var step=Math.max(24,o.hw),base=o.dp-8,dd=base+Math.max(0,Math.ceil((t-base)/step-1e-9))*step;if(dd<t-1e-9)dd+=step;var da=Math.floor((8+dd)/24)-Math.floor((8+t)/24);return{dep:dd,night:spansNight(t,dd)?1:0,nn:Math.max(1,da),ns:0}}
  var d0=nextDep(o,from,t),tod=(8+d0)%24,day=Math.floor((8+d0)/24),w=WIN[o.m];
  if((o.m=="rail"||o.m=="bus")&&o.lg)w=[6,23];
- if(tod>=w[0]&&tod<=w[1])return{dep:d0,night:0};
+ // Leaving inside the operating hours: travel on, but still find a bed if the wait spans the night
+ if(tod>=w[0]&&tod<=w[1])return{dep:d0,night:spansNight(t,d0)?1:0,ns:0};
+ // Some long-distance services run through the night; you ride, so no hotel
  if((o.m=="bus"&&o.lg&&hsh(from+o.to+day)%100<60)||(o.m=="rail"&&o.lg&&hsh(from+o.to+day)%100<30))return{dep:d0,night:0,ns:1};
+ // Otherwise wait for the service to reopen
  var ws=(tod<w[0]?day*24:(day+1)*24)+w[0]-8,d2=nextDep(o,from,ws);
- return{dep:d2,night:d2-t>4?1:0}
+ return{dep:d2,night:spansNight(t,d2)?1:0,ns:0}
 }
 function tm(h){var t=Math.round(480+h*60)%1440;return pad(Math.floor(t/60))+":"+pad(t%60)}
 function stayCost(k,n){return Math.round([0,22,65][k]*IDX[N[n].c]*[0,.9,1.1,1.4][N[n].s])}
@@ -261,46 +267,56 @@ function mkMarket(){
  return c.market
 }
 function mkSeed(){return(S.camp&&S.camp.seed)||1}
-// The town's character: how much its buyers want each kind of item, 1 to 5 (3 is neutral)
-function mkProfile(){
- return mkAsk("You are producing a travel game. Describe what the buyers of "+mkCity()+" tend to want, using general knowledge of the town's wealth, cost of living, fashions, working economy and cultural life. Score each kind of item from 1 (little interest) to 5 (strong interest), with 3 as neutral: luxury (fine craft, jewellery, fragrance), useful (tools, cookware, textiles, staples), cultural (folk art, instruments, ritual objects), food (produce, preserves, drink). A fashionable affluent city leans to luxury; a working port or farming region leans to useful goods. Return ONLY valid JSON: {\"character\":\"one short phrase\",\"weights\":{\"luxury\":3,\"useful\":3,\"cultural\":3,\"food\":3}}. No markdown.")
-  .then(function(p){var w=p.weights||{},weights={};MK_KINDS.forEach(function(k){weights[k]=Math.min(5,Math.max(1,Math.round(Number(w[k])||3)))});return{character:String(p.character||"").slice(0,120),weights:weights}})
+// One request for everything the market needs: the town's profile, its stock and a buyer for each unsold item
+function mkVisitPrompt(needStall,todo){
+ var c=mkCity(),parts=["You are producing a travel game set in "+c+". Answer every part below in one reply."];
+ if(needStall)parts.push("PROFILE: describe what the buyers of "+c+" tend to want, using general knowledge of the town's wealth, cost of living, fashions, working economy and cultural life. Give character as one short phrase, and weights scoring each kind of item from 1 (little interest) to 5 (strong interest), with 3 as neutral: luxury (fine craft, jewellery, fragrance), useful (tools, cookware, textiles, staples), cultural (folk art, instruments, ritual objects), food (produce, preserves, drink). A fashionable affluent city leans to luxury; a working port or farming region leans to useful goods.");
+ if(needStall)parts.push("STOCK: list 3 to 5 specialist items genuinely associated with "+c+": local crafts, foods, produce or trades a visitor could buy from a maker or market there. Be specific and avoid generic goods. For each give name; craft (who makes it, one short phrase); origin_note (12 words maximum); value: a whole number 1 to 10 on a universal scale that means the same anywhere (1 is an everyday item, 10 a rare treasure); supply: a whole number 1 to 10 for how readily available it is in "+c+" (10 abundant, 1 scarce); kind: one of luxury, useful, cultural or food. Spread scores across the range: a typical town should sit around 5.");
+ if(todo.length)parts.push("BUYERS: for each traveller item listed below, invent one local buyer who would realistically be shopping in "+c+". Give name; type (dealer, collector, shop owner or agent); line: one in-character sentence about the item and where they might try to sell it, which can be far away; demand: a whole number 1 to 10 for how much "+c+"'s buyers want this kind of item, on the same universal scale as the item's value, based on the town's wealth, climate, tastes, existing crafts and how far the item is from local life. Many should be 2 to 5, and only a genuine match 8 or more. savvy: a whole number 1 to 5 for how well they know the trade. Copy each item's ref exactly. Items: "+JSON.stringify(todo.map(function(x){return{ref:x.uid,name:x.name,craft:x.craft,origin:x.origin,value:x.value}})));
+ var shape=[];
+ if(needStall)shape.push('"character":"","weights":{"luxury":3,"useful":3,"cultural":3,"food":3},"items":[{"name":"","craft":"","origin_note":"","value":5,"supply":5,"kind":"useful"}]');
+ if(todo.length)shape.push('"buyers":[{"ref":0,"name":"","type":"","line":"","demand":4,"savvy":3}]');
+ parts.push("Return ONLY valid JSON, with no markdown: {"+shape.join(",")+"}");
+ return parts.join("\n\n");
 }
-function mkStock(){
- return mkAsk("You are producing a travel game. List 3 to 5 specialist items genuinely associated with "+mkCity()+": local crafts, foods, produce or trades a visitor could buy from a maker or market there. Use general knowledge of the town's trades, climate, history and trade links. Be specific, and avoid generic goods. For each item give: name; craft (who makes it, one short phrase); origin_note (12 words maximum); value: a whole number 1 to 10 on a universal scale that means the same anywhere in the world (1 is an everyday item, 10 is a rare treasure); supply: a whole number 1 to 10 for how readily available the item is in "+mkCity()+" (10 is abundant there, 1 is scarce). Spread scores across the full range: a typical town should sit around 5. kind: one of luxury, useful, cultural or food. Return ONLY valid JSON: {\"items\":[{\"name\":\"\",\"craft\":\"\",\"origin_note\":\"\",\"value\":5,\"supply\":5,\"kind\":\"useful\"}]}. No markdown.")
-  .then(function(j){var list=(j.items||[]).slice(0,5);if(!list.length)throw new Error("no items");return list.map(function(x){return{name:String(x.name||"Unnamed").slice(0,60),craft:String(x.craft||"").slice(0,90),origin:String(x.origin_note||"").slice(0,120),value:mkClamp(x.value,5),supply:mkClamp(x.supply,5),kind:MK_KINDS.indexOf(x.kind)>=0?x.kind:"useful"}})})
+function passingDealer(){return{name:'A passing dealer',type:'dealer',line:'Takes a look, shrugs, and makes an offer.',demand:4,savvy:3}}
+function mkBuyer(b){return{name:String(b.name||'A buyer').slice(0,60),type:String(b.type||'dealer').slice(0,20),line:String(b.line||'').slice(0,300),demand:mkClamp(b.demand,4),savvy:Math.min(5,Math.max(1,Math.round(Number(b.savvy)||3)))}}
+function mkApply(j,needStall,todo){
+ var m=mkMarket();
+ if(needStall){
+  var w=j.weights||{},weights={};MK_KINDS.forEach(function(k){weights[k]=Math.min(5,Math.max(1,Math.round(Number(w[k])||3)))});
+  var list=(j.items||[]).slice(0,5);if(!list.length)throw new Error('no items');
+  m.profile={character:String(j.character||'').slice(0,120),weights:weights};
+  m.stall=list.map(function(x,i){var id='d'+mkDayNo()+'i'+i;var item={name:String(x.name||'Unnamed').slice(0,60),craft:String(x.craft||'').slice(0,90),origin:String(x.origin_note||'').slice(0,120),value:mkClamp(x.value,5),supply:mkClamp(x.supply,5),kind:MK_KINDS.indexOf(x.kind)>=0?x.kind:'useful',id:id};item.ask=Math.round(mkBuy(item.value,item.supply)*mkRoll(0.95,1.05,mkSeed(),mkCity(),mkDayNo(),id,'ask'));return item});
+ }
+ var byRef={};(j.buyers||[]).forEach(function(b){byRef[String(b.ref)]=b});
+ todo.forEach(function(x){var b=byRef[String(x.uid)];x.buyer=b?mkBuyer(b):passingDealer()});
+}
+function mkFallback(needStall,todo){
+ var m=mkMarket();
+ if(needStall){m.profile=MK_BAND_NEUTRAL;m.stall=mkDemoStock().map(function(x,i){var id='d'+mkDayNo()+'i'+i;return Object.assign({},x,{id:id,ask:Math.round(mkBuy(x.value,x.supply)*mkRoll(0.95,1.05,mkSeed(),mkCity(),mkDayNo(),id,'ask'))})})}
+ todo.forEach(function(x){if(!x.buyer)x.buyer=passingDealer()});
+}
+function restVisit(){
+ var m=mkMarket();S.camp.marketOpen=true;
+ var needStall=!m.stall,todo=S.camp.pack.filter(function(x){return!x.buyer});
+ if(m.finding||(!needStall&&!todo.length)){render();return}
+ m.finding=true;render();
+ mkAsk(mkVisitPrompt(needStall,todo))
+  .then(function(j){mkApply(j,needStall,todo)})
+  .catch(function(){mkFallback(needStall,todo)})
+  .then(function(){m.finding=false;render()});
 }
 function mkDemoStock(){return[
  {name:"Hand-thrown clay vessel",craft:"Local potter's workshop",origin:"Clay from the nearby hills, a long tradition",value:3,supply:9,kind:"useful"},
  {name:"Aged local olive oil",craft:"Family press",origin:"Pressed from groves outside the old walls",value:5,supply:6,kind:"food"},
  {name:"Hand-woven textile",craft:"Weaver's cooperative",origin:"A pattern unique to this town's looms",value:8,supply:2,kind:"cultural"}]}
-function restOpenStall(){
- var m=mkMarket();if(m.stall||m.opening)return;m.opening=true;render();
- mkProfile().catch(function(){return MK_BAND_NEUTRAL}).then(function(profile){
-  m.profile=profile;
-  return mkStock().catch(function(){return mkDemoStock()}).then(function(list){
-   m.stall=list.map(function(x,i){var id="d"+mkDayNo()+"i"+i;return Object.assign({},x,{id:id,ask:Math.round(mkBuy(x.value,x.supply)*mkRoll(0.95,1.05,mkSeed(),mkCity(),mkDayNo(),id,"ask"))})});
-   m.opening=false;render();
-  })
- })
-}
-function restBuy(id){
- var m=mkMarket(),x=m.stall&&m.stall.find(function(p){return p.id===id});
+function restBuyAt(i){
+ var m=mkMarket(),x=m.stall&&m.stall[i];
  if(!x||S.cash<x.ask||S.camp.pack.length>=MK_CAP)return;
  S.cash-=x.ask;
  S.camp.pack.push(Object.assign({},x,{uid:S.camp.nextUid=(S.camp.nextUid||0)+1,boughtIn:mkCity(),buyer:null}));
  say("Bought "+x.name+" in "+mkCity()+" for "+mkGbp(x.ask)+".");render();
-}
-function restFindBuyers(){
- var todo=S.camp.pack.filter(function(x){return!x.buyer});if(!todo.length)return;
- var m=mkMarket();m.finding=true;render();
- var chain=Promise.resolve();
- todo.forEach(function(x){chain=chain.then(function(){
-  return mkAsk("You are running a travel game. A traveller in "+mkCity()+" is offering a \""+x.name+"\" ("+x.craft+"; "+x.origin+"). The item's universal value is "+x.value+" out of 10. Invent one local buyer who would realistically be shopping in "+mkCity()+". Score demand: a whole number 1 to 10 for how much "+mkCity()+"'s buyers want this kind of item, on the same universal scale. Base it on general knowledge of "+mkCity()+": its wealth, climate, tastes, existing crafts, what people already own and how far the item is from local life. Spread scores across the full 1 to 10 range: many should be 2 to 5, and only a genuine match should reach 8 or more. Return ONLY valid JSON: {\"name\":\"\",\"type\":\"dealer, collector, shop owner or agent\",\"line\":\"one in-character sentence about the item and where they might try to sell it, which can be far away\",\"demand\":4,\"savvy\":3}. savvy is 1 to 5: 1 is a novice, 5 is an expert. No markdown.")
-  .then(function(b){x.buyer={name:String(b.name||"A buyer").slice(0,60),type:String(b.type||"dealer").slice(0,20),line:String(b.line||"").slice(0,300),demand:mkClamp(b.demand,4),savvy:Math.min(5,Math.max(1,Math.round(Number(b.savvy)||3)))}},
-  function(){x.buyer={name:"A passing dealer",type:"dealer",line:"Takes a look, shrugs, and makes an offer.",demand:4,savvy:3}})
- })});
- chain.then(function(){m.finding=false;render()});
 }
 // The offer: the town's view of the item, moved by what the town wants from its profile, with a roll narrowed by savvy
 function restEffDemand(x){var m=mkMarket(),b=x.buyer||{demand:4},w=((m.profile||MK_BAND_NEUTRAL).weights||{})[x.kind]||3;return Math.min(10,Math.max(1,b.demand+Math.round(w-3)))}
@@ -319,55 +335,71 @@ function restSell(uid){
 }
 function restLeave(){nextLeg()}
 function restStart(){
- S.phase="rest";S.camp.market=null;say("Rest day in "+mkCity()+".");render();
+ S.phase="rest";S.camp.market=null;S.camp.marketOpen=false;say("Rest day in "+mkCity()+".");render();
 }
+function restCloseMarket(){S.camp.marketOpen=false;render()}
 function restPage(){
- var m=mkMarket(),arr=arrDay(),city=mkCity(),full=S.camp.pack.length>=MK_CAP;
+ var arr=arrDay(),city=mkCity();
  var tl="<div style='display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 2px'>"+
   "<div style='border:1px solid #ddd4c4;border-radius:10px;padding:8px;text-align:center;font-size:.82rem;color:#6b7168'><b style='display:block;color:#242a24'>Arrived</b>day "+arr+"</div>"+
   "<div style='border:1px solid #315b45;border-radius:10px;padding:8px;text-align:center;font-size:.82rem;font-weight:700'><b style='display:block'>Rest day</b>day "+(arr+1)+"</div>"+
   "<div style='border:1px solid #ddd4c4;border-radius:10px;padding:8px;text-align:center;font-size:.82rem;color:#6b7168'><b style='display:block;color:#242a24'>Leave 8am</b>day "+(arr+2)+"</div></div>";
- var h="<div class='panel'><h2>Rest day in "+esc(city)+"</h2><p class='mute' style='margin:0 0 6px'>Free day. Trade at the stall, find buyers, then leave at 8am.</p>"+tl+"</div>";
- // stall
- h+="<div class='panel'><h2>Market</h2>";
- if(!m.stall){
-  h+="<p class='mute' style='margin:0 0 8px'>"+(m.opening?"The stall is being set up\u2026":"Open the stall to see what the town has.")+"</p>"+
-   (m.opening?"":"<button onclick='restOpenStall()'>Open the stall</button>");
- } else {
+ var h="<div class='panel'><h2>Rest day in "+esc(city)+"</h2><p class='mute' style='margin:0 0 6px'>A free day. Visit the market to trade, explore the town, then leave at 8am.</p>"+tl+"</div>";
+ h+=S.camp.marketOpen?marketHtml():"<div class='panel'><h2>Market</h2><p class='mute' style='margin:0 0 10px'>Sell what you carry and buy local goods to take on the next leg.</p><button class='btn' onclick='restVisit()'>Visit the market</button></div>";
+ h+=thingsHtml();
+ h+="<div class='panel'><button class='btn' onclick='restLeave()'>Leave for the next leg (8am, day "+(arr+2)+")</button><p class='mute' style='margin:8px 0 0'>Items you're carrying come with you. Buyers are found afresh in each town.</p></div>";
+ return h
+}
+// Market view: goods to sell first, then the stock to buy
+function marketHtml(){
+ var m=mkMarket(),busy=!!m.finding,unsold=S.camp.pack.some(function(x){return!x.buyer});
+ var h="<div class='panel'><h2>Goods for trade ("+S.camp.pack.length+"/"+MK_CAP+")</h2>";
+ if(!S.camp.pack.length)h+="<p class='mute' style='margin:0 0 8px'>Nothing to sell yet. Buy local goods below.</p>";
+ else h+=packSellHtml();
+ if(unsold&&!busy)h+="<div class='row' style='margin-top:10px'><button class='btn alt' onclick='restVisit()'>Find buyers for my pack</button></div>";
+ h+="</div><div class='panel'><h2>Buy local goods</h2>";
+ if(!m.stall)h+="<p class='mute'>"+(busy?"Asking around the market\u2026":"The market is closed today.")+"</p>";
+ else{
+  var full=S.camp.pack.length>=MK_CAP;
   h+="<p class='mute' style='margin:0 0 8px'>"+esc(m.profile&&m.profile.character?m.profile.character:"")+"</p>";
-  h+="<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px'>"+m.stall.map(function(x){
+  h+="<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px'>"+m.stall.map(function(x,i){
    var owned=S.camp.pack.some(function(p){return p.id===x.id}),can=!owned&&!full&&S.cash>=x.ask;
    return"<div style='border:1px solid #ddd4c4;border-radius:10px;padding:10px;background:#fff'><b>"+esc(x.name)+"</b><div class='mute' style='font-size:.85rem'>"+esc(x.craft)+"</div><div class='mute' style='font-size:.85rem'><em>"+esc(x.origin)+"</em></div>"+
     "<div style='font-size:.8rem;margin:4px 0'>Value <b>"+x.value+"</b> "+mkPips(x.value)+" &nbsp; Supply <b>"+x.supply+"</b> "+mkPips(x.supply)+"</div>"+
-    "<div style='display:flex;justify-content:space-between;align-items:center'><b style='color:#315b45'>"+mkGbp(x.ask)+"</b><button "+(can?"":"disabled")+" onclick='restBuy(\""+x.id+"\")'>"+(owned?"In pack":full?"Pack full":S.cash<x.ask?"Too dear":"Buy")+"</button></div></div>"
+    "<div style='display:flex;justify-content:space-between;align-items:center'><b style='color:#315b45'>"+mkGbp(x.ask)+"</b><button "+(can?"":"disabled")+" onclick='restBuyAt("+i+")'>"+(owned?"In pack":full?"Pack full":S.cash<x.ask?"Too dear":"Buy")+"</button></div></div>"
   }).join("")+"</div>";
  }
- h+="</div>";
- h+="<div class='panel'><button onclick='restLeave()'>Leave for the next leg (8am, day "+(arr+2)+")</button><p class='mute' style='margin:8px 0 0'>Items you're carrying come with you. Buyers are found afresh in each town.</p></div>";
+ h+="<div class='row' style='margin-top:12px'><button class='btn alt' onclick='restCloseMarket()'>Close market</button></div></div>";
  return h
 }
-function packHtml(){
- var m=mkMarket(),full=S.camp.pack.length>=MK_CAP,h="<div class='panel'><h2>Goods for trade ("+S.camp.pack.length+"/"+MK_CAP+")</h2>";
- if(!S.camp.pack.length){h+="<p class='mute'>Nothing to sell yet.</p>"}
- else{
-  h+="<div class='row' style='margin-bottom:10px'><button class='secondary' "+(m.finding||S.camp.pack.every(function(x){return x.buyer})?"disabled":"")+" onclick='restFindBuyers()'>"+(m.finding?"Asking around\u2026":"Find buyers for my pack")+"</button></div>";
-  h+="<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px'>"+S.camp.pack.map(function(x){
-   var o=restOffer(x),d=o-x.ask;
-   var buyer=x.buyer?"<div style='font-size:.84rem;background:#f7f3ea;border-radius:8px;padding:7px 8px'><b>"+esc(x.buyer.name)+"</b> ("+esc(x.buyer.type)+"): "+esc(x.buyer.line)+"<div style='margin-top:4px'>Demand here <b>"+restEffDemand(x)+"</b> "+mkPips(restEffDemand(x))+" \u00b7 savvy "+x.buyer.savvy+"/5</div></div>":"<div class='mute' style='font-size:.84rem'>No buyer found yet.</div>";
-   return"<div style='border:1px solid #ddd4c4;border-radius:10px;padding:10px;background:#fff'><b>"+esc(x.name)+"</b><div class='mute' style='font-size:.85rem'>Paid "+mkGbp(x.ask)+"</div>"+buyer+
-    "<div style='display:flex;justify-content:space-between;align-items:center;margin-top:6px'><b>Offer "+mkGbp(o)+"</b><span style='font-size:.78rem;font-weight:800;color:"+(d>=0?"#2d4a1f":"#a74436")+"'>"+(d>=0?"+":"\u2212")+mkGbp(Math.abs(d))+"</span></div>"+
-    "<button style='margin-top:6px' "+(x.buyer?"":"disabled")+" onclick='restSell("+x.uid+")'>Sell</button></div>"
-  }).join("")+"</div>";
- }
- h+="</div>";
- return h
+// Goods in the pack, each with its buyer and offer
+function packSellHtml(){
+ return "<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px'>"+S.camp.pack.map(function(x){
+  var o=restOffer(x),d=o-x.ask;
+  var buyer=x.buyer?"<div style='font-size:.84rem;background:#f7f3ea;border-radius:8px;padding:7px 8px'><b>"+esc(x.buyer.name)+"</b> ("+esc(x.buyer.type)+"): "+esc(x.buyer.line)+"<div style='margin-top:4px'>Demand here <b>"+restEffDemand(x)+"</b> "+mkPips(restEffDemand(x))+" \u00b7 savvy "+x.buyer.savvy+"/5</div></div>":"<div class='mute' style='font-size:.84rem'>No buyer found yet.</div>";
+  return"<div style='border:1px solid #ddd4c4;border-radius:10px;padding:10px;background:#fff'><b>"+esc(x.name)+"</b><div class='mute' style='font-size:.85rem'>Paid "+mkGbp(x.ask)+"</div>"+buyer+
+   "<div style='display:flex;justify-content:space-between;align-items:center;margin-top:6px'><b>Offer "+mkGbp(o)+"</b><span style='font-size:.78rem;font-weight:800;color:"+(d>=0?"#2d4a1f":"#a74436")+"'>"+(d>=0?"+":"\u2212")+mkGbp(Math.abs(d))+"</span></div>"+
+   "<button class='btn' style='margin-top:6px;width:100%' "+(x.buyer?"":"disabled")+" onclick='restSell("+x.uid+")'>Sell</button></div>"
+ }).join("")+"</div>";
+}
+// Things to do on a rest day: search links for the town
+function thingsHtml(){
+ var q=function(s){return encodeURIComponent(s).replace(/%20/g,"+")},c=q(mkCity());
+ var items=[
+  ["Discover the local music scene","Acts across traditional, mainstream and experimental music.","https://www.google.com/search?q=tell+me+about+the+music+scene+in+"+c+".+Give+me+examples+of+acts+covering+traditional%2C+mainstream+and+contemporary+%2F+experimental+music"],
+  ["Paint a local street scene","Painting inspiration from the town.","https://www.google.com/search?q=give+me+painting+inspiration+from+"+c+""],
+  ["Visit the local galleries and museums","What's on, and where to go.","https://www.google.com/search?q=art+galleries+and+museums+in+"+c],
+  ["Watch a short documentary","Films about the town and its surroundings.","https://www.google.com/search?q=short+documentary+about+"+c+"&udm=7"],
+  ["Learn the town's history","Key events and places from its past.","https://www.google.com/search?q=history+of+"+c]
+ ];
+ return "<div class='panel'><h2>Things to do</h2>"+items.map(function(i){return"<a class='btn' href='"+i[2]+"' target='_blank' rel='noopener'>"+esc(i[0])+"</a><p class='mute' style='margin:0 0 12px;font-size:.84rem'>"+esc(i[1])+"</p>"}).join("")+"</div>";
 }
 function planIntro(){
  var n=N[S.goal].n;
- return"<div class='panel'><h2>Destination: "+esc(n)+"</h2><p class='flavour' id='flavour-text'>Loading an introduction to "+esc(n)+"…</p>"+(S.plan?"":"<p class='mute' style='margin:0'>Where is "+esc(n)+"? Tap the map to drop a pin. The further off you are, the more time you lose working out how to get there.</p>")+"</div>"
+ return"<div class='panel'><h2>Destination: "+esc(n)+"</h2><p class='flavour' id='flavour-text'>Loading an introduction to "+esc(n)+"…</p>"+"</div>"
 }
 function planPanelBase(){
- return"<div class='panel'>"+(S.plan?"":"<div class='row' style='margin-top:0'><button class='btn' id='planguess' onclick='planGuess()'"+(PL.guess?"":" disabled")+">Lock in guess</button></div>")+"<div id='planres'>"+(S.plan?planResHtml():"")+"</div><div id='planfail' hidden><p class='mute'>The map couldn't load.</p><button class='btn alt' onclick='planDone(1)'>Skip planning</button></div></div>"
+ return"<div class='panel'>"+(S.plan?"":"<div class='guessbox'><p class='guessprompt'>Where is "+esc(N[S.goal].n)+"? Tap the map to drop a pin. The further off you are, the more time you lose working out how to get there.</p><div class='row' style='margin:0'><button class='btn' id='planguess' onclick='planGuess()'"+(PL.guess?"":" disabled")+">Lock in guess</button></div></div>")+"<div id='planres'>"+(S.plan?planResHtml():"")+"</div><div id='planfail' hidden><p class='mute'>The map couldn't load.</p><button class='btn alt' onclick='planDone(1)'>Skip planning</button></div></div>"
 }
 function planResHtml(){var p=S.plan;return"<p>You were "+Math.round(p.km)+" km off: "+mins(p.lost)+" lost.</p><button class='btn' onclick='planDone()'>Start travelling</button>"}
 function planGuess(){
@@ -432,8 +464,7 @@ function inventoryPanelHtml(){
  if(S.cards&&S.cards.length)h+="<ul class='log'>"+S.cards.map(function(k){return"<li>"+esc(CARDS[k][0])+" — "+esc(CARDS[k][1])+"</li>"}).join("")+"</ul>";
  else h+="<p class='mute'>No travel items yet.</p>";
  h+="</div>";
- if(S.phase==="rest")h+=packHtml();
- else if(S.camp.pack&&S.camp.pack.length)h+="<div class='panel'><h2>Goods for trade ("+S.camp.pack.length+"/"+MK_CAP+")</h2><ul class='log'>"+S.camp.pack.map(function(x){return"<li>"+esc(x.name)+" (paid \u00a3"+Math.round(x.ask)+")</li>"}).join("")+"</ul></div>";
+ if(S.camp.pack&&S.camp.pack.length)h+="<div class='panel'><h2>Goods for trade ("+S.camp.pack.length+"/"+MK_CAP+")</h2><ul class='log'>"+S.camp.pack.map(function(x){return"<li>"+esc(x.name)+" (paid \u00a3"+Math.round(x.ask)+")</li>"}).join("")+"</ul></div>";
  return h
 }
 var activePanel="play",panelScrollTimer=null;
@@ -851,7 +882,7 @@ function render(msg){
 
   if(S.cards.length)h+="<p class='hand'>Carrying: "+S.cards.map(function(k){return CARDS[k][0]}).join(", ")+"</p>";
   if(S.phase=="lastmile"||S.phase=="interim")h+="<div class='panel'><h2>"+(S.phase=="interim"?"Last-mile work":"Last mile")+"</h2><div id='lm'></div></div>";else if(S.phase=="plan")h+=planPanel();else if(S.phase=="routes")h+=routesPanel();
-  if(S.phase=="lastmile"||S.phase=="interim"||S.phase=="plan"||S.phase=="routes"){}else if(S.phase=="stay"){var po=opts()[S.pend],ss=sched(po,S.loc,S.h);h+="<div class='panel'><h2>No service until "+tm(ss.dep)+"</h2><p style='margin:0 0 10px'>Where will you sleep in "+N[S.loc].n+"?</p>";S.rooms.forEach(function(x,k){h+="<button class='card' onclick='stay("+k+")'"+(x.c>S.cash?" disabled":"")+"><b>"+x.n+", \u00a3"+x.c+"</b><span>"+(x.q?"A proper night's rest.":"Cheap, but you may sleep badly.")+"</span></button>"});h+="<button class='card' onclick='stay(-1)'><b>Spend the night at the station</b><span>Free, but you will be tired: 1 h lost on the next leg.</span></button>";if(!S.rooms.length)h+="<p style='margin:0 0 10px'>No rooms are free in town tonight.</p>";h+="<button class='link' onclick='S.phase=\"move\";S.pend=null;render()'>Choose a different option</button></div>"}else if(S.phase=="draft"){
+  if(S.phase=="lastmile"||S.phase=="interim"||S.phase=="plan"||S.phase=="routes"){}else if(S.phase=="stay"){var po=opts()[S.pend],ss=sched(po,S.loc,S.h);h+="<div class='panel'><h2>No service until "+clk(ss.dep)+"</h2><p style='margin:0 0 10px'>Where will you sleep in "+N[S.loc].n+"?</p>";S.rooms.forEach(function(x,k){h+="<button class='card' onclick='stay("+k+")'"+(x.c>S.cash?" disabled":"")+"><b>"+x.n+", \u00a3"+x.c+"</b><span>"+(x.q?"A proper night's rest.":"Cheap, but you may sleep badly.")+"</span></button>"});h+="<button class='card' onclick='stay(-1)'><b>Spend the night at the station</b><span>Free, but you will be tired: 1 h lost on the next leg.</span></button>";if(!S.rooms.length)h+="<p style='margin:0 0 10px'>No rooms are free in town tonight.</p>";h+="<button class='link' onclick='S.phase=\"move\";S.pend=null;render()'>Choose a different option</button></div>"}else if(S.phase=="draft"){
    h+="<div class='panel'><h2>Pick one to take with you</h2>";
    S.draft.forEach(function(k){h+="<button class='card' onclick=\"pick('"+k+"')\"><b>"+CARDS[k][0]+"</b><span>"+CARDS[k][1]+"</span></button>"});
    h+="<button class='link' onclick='pick(null)'>Skip</button></div>"
@@ -862,7 +893,7 @@ function render(msg){
    v.show.forEach(function(i){
     var o=all[i],sc=sched(o,S.loc,S.h);
     if(o.m!=last){h+="<h3>"+GRP[o.m]+"</h3>";last=o.m}
-    h+="<button class='opt' onclick='go("+i+")'"+(o.c>S.cash?" disabled":"")+"><div class='to'>"+N[o.to].n+"<small>heads "+dir(S.loc,o.to)+", departs "+tm(sc.dep)+dayAhead(sc.dep)+(sc.ns?", night service":"")+(S.path.indexOf(o.to)>-1?", already visited":"")+"</small></div><span>"+o.h+" h</span><span>\u00a3"+o.c+"</span></button>"});
+    h+="<button class='opt' onclick='go("+i+")'"+(o.c>S.cash?" disabled":"")+"><div class='to'>"+N[o.to].n+"<small>heads "+dir(S.loc,o.to)+" · leaves "+clk(sc.dep)+" · arrives "+clk(sc.dep+o.h)+(sc.night?"<br>Overnight: hotel from about £"+stayCost(1,S.loc):sc.ns?"<br>Night service: sleep on board":"")+(S.path.indexOf(o.to)>-1?" · already visited":"")+"</small></div><span>"+o.h+" h</span><span>\u00a3"+o.c+"</span></button>"});
    if(v.hid>0)h+="<p class='hand'>"+v.hid+" more long-distance links are not shown here.</p><button class='btn alt' onclick='look()'>Look for routes (0.3 h)</button>";h+=xferHtml();
    h+="</div>"}
  }
