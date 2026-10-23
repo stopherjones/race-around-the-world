@@ -1,0 +1,2 @@
+// Region: Argentina, Chile, Uruguay and Paraguay. Places as id|name|lat|lon|country|flags, separated by ;
+var REGION_SOUTHERN_CONE="asu|Asuncion|-25.263|-57.580|PY|ra2a;mvd|Montevideo|-34.901|-56.165|UY|ra2ap;bue|Buenos Aires|-34.604|-58.382|AR|ra3ap;cba|Cordoba|-31.420|-64.188|AR|ra2a;mdz|Mendoza|-32.889|-68.845|AR|ra2a;scl|Santiago|-33.449|-70.669|CL|ra3a;vap|Valparaiso|-33.047|-71.613|CL|rap2";
