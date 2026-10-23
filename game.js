@@ -772,7 +772,7 @@ function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{"&":"&amp
 function startLM(){MJ.resetView=true;
  var g=N[S.goal];if(MJ.p)MJ.p.then(function(m){if(m)jvis(m,false)});
  MAPX.setLabels(true);LM.start({name:g.n,lat:g.la,lon:g.lo,landmark:g.l,level:S.lmLevel||"mixed",clueMode:"off"},function(r){
-  LM.reset();S.lm=r;S.h+=r.lost;settleBonus();S.over="done";S.phase="move";
+  LM.reset();S.lm=r;S.h+=r.lost;S.arrH=S.h;settleBonus();S.over="done";S.phase="move";
   say(clk(S.h)+": Last mile: "+(r.skipped?"skipped.":r.title+", "+r.distText+" off, "+mins(r.lost)+" lost."));render()})
 }
 function lmHtml(){var r=S.lm;if(!r)return"";return"<p class='res'><b>Last mile: "+(r.skipped?"skipped":esc(r.title)+" ("+r.distText+" off)")+"</b><span>You lost "+mins(r.lost)+".</span></p>"}
@@ -781,9 +781,15 @@ function stranded(){
  if(!S||S.over||S.phase!=="move")return false;
  return!canAffordOnward()&&!canAffordTerminalChange()
 }
+var MAPVIEW="std";
+// Switch the map between its default 4:3 size, minimised and full screen
+function mapView(v){MAPVIEW=(MAPVIEW===v)?"std":v;render()}
+// Keep the header's height in a CSS variable, so a full-screen map can sit just below it
+function setHdrVar(){var h=document.querySelector(".hdr");document.documentElement.style.setProperty("--hdr-h",(h?h.getBoundingClientRect().bottom:0)+"px")}
 // Map dock: the map fills the top half of the screen, with its view buttons laid over it; the actions scroll below
 function mapDockHtml(){
- return "<div class='mapdock'><div id='sharedmap' class='smap'></div><div class='modebar mapbtns'><div class='modes'><button class='btn alt' data-mode='streets'>Streets</button><button class='btn alt' data-mode='sat'>Satellite</button><button class='btn alt' data-mode='hybrid'>Hybrid</button></div><button class='btn alt' onclick='mfit()'>Fit journey</button></div></div>";
+ var min=MAPVIEW==="min",full=MAPVIEW==="full";
+ return "<div class='mapdock'><div id='sharedmap' class='smap'></div><div class='mapctl'><button class='btn alt' onclick='mapView(\"min\")'>"+(min?"Restore map":"Minimise")+"</button><button class='btn alt' onclick='mapView(\"full\")'>"+(full?"Exit full screen":"Full screen")+"</button></div><div class='modebar mapbtns'><div class='modes'><button class='btn alt' data-mode='streets'>Streets</button><button class='btn alt' data-mode='sat'>Satellite</button><button class='btn alt' data-mode='hybrid'>Hybrid</button></div><button class='btn alt' onclick='mfit()'>Fit journey</button></div></div>";
 }
 // Opening screen: title, introduction, and the sections for each way to play
 function welcomeHtml(msg){
@@ -825,20 +831,22 @@ function render(msg){
  if(stranded())S.over="broke";
  save();
  if(!S){
-  document.body.classList.remove("mapscreen");
+  document.body.classList.remove("mapscreen","map-min","map-full");
   var app=document.getElementById("app");app.classList.remove("wide");app.innerHTML=welcomeHtml(msg);
   return}
  var h="<h1 class='sr-only'>Role Around the World</h1>";
  var mapped=S.phase!=="rest";
  document.body.classList.toggle("mapscreen",mapped);
+ document.body.classList.toggle("map-min",mapped&&MAPVIEW==="min");
+ document.body.classList.toggle("map-full",mapped&&MAPVIEW==="full");
  var st=status();
- h+="<div class='hdr'><div class='r1'><span><b>"+clk(S.h)+"</b><small class='rv'>Target "+stamp(S.target||0)+"</small></span><span><b>\u00a3"+Math.round(S.cash)+"</b></span><span class='st'><span aria-hidden='true'>"+st[0]+"</span> "+st[1]+"</span></div><div class='r2'><div class='cur'><small>Now</small>"+N[S.loc].n+"</div><div><small>To "+(S.phase=="plan"&&!S.plan||S.phase=="routes"&&!S.route?"?":arrow(S.loc,S.goal))+"</small>"+N[S.goal].n+"</div></div></div>";
+ h+="<div class='hdr'><div class='r1'><span><b>"+(S.phase==="rest"?"Day "+(arrDay()+1)+" \u00b7 rest":clk(S.h))+"</b>"+(S.phase==="rest"?"":"<small class='rv'>Target "+stamp(S.target||0)+"</small>")+"</span><span><b>\u00a3"+Math.round(S.cash)+"</b></span><span class='st'><span aria-hidden='true'>"+st[0]+"</span> "+st[1]+"</span></div><div class='r2'><div class='cur'><small>Now</small>"+N[S.loc].n+"</div><div><small>To</small>"+(S.phase==="rest"?"?":S.phase=="plan"&&!S.plan||S.phase=="routes"&&!S.route?"?":arrow(S.loc,S.goal))+" "+(S.phase==="rest"?"Next leg":N[S.goal].n)+"</div></div></div>";
  h+=mapped?mapDockHtml()+"<div class='actions'>":"";
  h+="<nav class='panel-nav' aria-label='Game panels'><button type='button' data-panel-target='play'>Game</button><button type='button' data-panel-target='journal'>Journal</button><button type='button' data-panel-target='inventory'>Inventory</button></nav><p class='panel-hint'>Swipe between panels or choose a section</p><div class='game-panels' id='panel-track'><section class='game-panel' data-game-panel='play' aria-label='Game'>";
  if(S&&S.phase=="plan")h+=planIntro();
  if(S.phase==="rest"){h+=restPage();}else if(S.over){
   var m=S.over=="broke"?"Stranded: you can't afford any onward fare from "+N[S.loc].n+".":(S.bonus?"You arrived on time.":"You arrived after the target time.");
-  h+="<div class='panel'><p class='big'>"+m+"</p><p class='mute'>Leg "+S.camp.legs+" complete. You carry \u00a3"+Math.max(0,Math.round(S.cash))+" into the next leg"+(S.bonus?", including the \u00a3"+BONUS+" on-time bonus":"")+", plus \u00a3"+INCOME+" income for the next leg.</p>"+restHtml()+"<div class='row'><button class='btn' onclick='restStart()'>Rest day</button></div></div>"
+  h+="<div class='panel'><p class='big'>"+m+"</p><p class='mute'>Leg "+S.camp.legs+" complete. You carry \u00a3"+Math.max(0,Math.round(S.cash))+" into the next leg"+(S.bonus?", including the \u00a3"+BONUS+" on-time bonus":"")+". A further \u00a3"+INCOME+" income is paid at the start of the next leg, when you set off at 8am on Day "+(arrDay()+2)+".</p>"+restHtml()+"<div class='row'><button class='btn' onclick='restStart()'>Rest day</button></div></div>"
  }else{
 
   if(S.cards.length)h+="<p class='hand'>Carrying: "+S.cards.map(function(k){return CARDS[k][0]}).join(", ")+"</p>";
@@ -860,14 +868,14 @@ function render(msg){
  }
  h+="<button class='link' onclick='if(confirm(\"End your campaign? Saved progress will be cleared.\"))reset()'>End campaign</button></section><section class='game-panel' data-game-panel='journal' aria-label='Travel journal'>"+journalPanelHtml()+"</section><section class='game-panel' data-game-panel='inventory' aria-label='Money and inventory'>"+inventoryPanelHtml()+"</section></div>";
  if(mapped)h+="</div>";
- var app=document.getElementById("app");app.classList.add("wide");app.innerHTML=h;drawMap();bindPanels();bindModes();fillFlavour();fillRouteFlavour();if(S&&(S.phase=="lastmile"||S.phase=="interim")&&!S.over)LM.attach(document.getElementById("lm"))
+ var app=document.getElementById("app");app.classList.add("wide");app.innerHTML=h;setHdrVar();drawMap();bindPanels();bindModes();fillFlavour();fillRouteFlavour();if(S&&(S.phase=="lastmile"||S.phase=="interim")&&!S.over)LM.attach(document.getElementById("lm"))
 }
 // Startup: show the start screen straight away; if a campaign is saved, load its regions first, then resume it
 load();
 if(S&&S.phase=="interim")S.phase="move";
 if(S){journeyReady(S.start,S.goal).then(function(){if(S&&S.phase=="lastmile"&&!S.over)startLM();render()},function(err){S=null;render("Could not load the saved map: "+(err&&err.message||err))})}
 else render();
-window.addEventListener("resize",function(){drawMap();if(MJ.p)MJ.p.then(function(m){if(m)m.resize()})});
+window.addEventListener("resize",function(){setHdrVar();drawMap();if(MJ.p)MJ.p.then(function(m){if(m)m.resize()})});
 
 // Safety net: if drawing the screen fails, show what happened and a way to restart, rather than a blank page.
 (function(){

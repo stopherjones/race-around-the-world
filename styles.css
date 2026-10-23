@@ -178,3 +178,25 @@ body.mapscreen .actions .panel-nav{position:sticky;top:0;z-index:2;background:va
 .hdr .r2{grid-template-columns:1fr 1fr}
 .hdr .r2 .cur{text-align:left}
 .hdr .r2 div:last-child{text-align:right}
+
+/* Now / To line: a quiet strip under the header, two left-aligned columns */
+.hdr .r2{margin-top:6px;padding-top:5px;border-top:1px solid var(--line);grid-template-columns:1fr 1fr;gap:8px;font-size:.84rem}
+.hdr .r2>div{text-align:left;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr .r2 .cur{font-weight:400}
+.hdr .r2 small{display:inline;font-size:inherit;color:var(--mute);margin-right:4px}
+.hdr .r2 small::after{content:":"}
+
+/* Header hugs the top; map defaults to 4:3, with minimise and full-screen controls */
+body.mapscreen main#app{padding:6px 12px 0}
+body.mapscreen .hdr{padding:2px 0 0;margin-bottom:6px}
+body.mapscreen .mapdock{flex:0 0 auto;aspect-ratio:4/3;max-height:60dvh;width:100%;margin-bottom:8px}
+body.mapscreen .smap{position:absolute;inset:0;height:auto;min-height:0;margin:0}
+.mapctl{position:absolute;left:8px;bottom:8px;z-index:3;display:flex;gap:6px}
+.mapctl .btn{background:color-mix(in srgb,var(--card) 92%,transparent);box-shadow:0 1px 4px rgba(0,0,0,.25);padding:5px 10px;font-size:.8rem}
+/* Minimised: only the controls remain, the actions get the space */
+body.map-min .mapdock{aspect-ratio:auto;max-height:none;height:auto}
+body.map-min .smap,body.map-min .mapbtns{display:none}
+body.map-min .mapctl{position:static;padding:2px 0}
+/* Full screen: the map covers the viewport below the header */
+body.map-full .mapdock{position:fixed;top:var(--hdr-h,0px);left:0;right:0;bottom:0;z-index:20;aspect-ratio:auto;max-height:none;height:auto;margin:0;background:var(--bg)}
+body.map-full .smap{border-radius:0;border:0}
