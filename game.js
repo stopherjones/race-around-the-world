@@ -781,18 +781,61 @@ function stranded(){
  if(!S||S.over||S.phase!=="move")return false;
  return!canAffordOnward()&&!canAffordTerminalChange()
 }
+// Map dock: the map fills the top half of the screen, with its view buttons laid over it; the actions scroll below
+function mapDockHtml(){
+ return "<div class='mapdock'><div id='sharedmap' class='smap'></div><div class='modebar mapbtns'><div class='modes'><button class='btn alt' data-mode='streets'>Streets</button><button class='btn alt' data-mode='sat'>Satellite</button><button class='btn alt' data-mode='hybrid'>Hybrid</button></div><button class='btn alt' onclick='mfit()'>Fit journey</button></div></div>";
+}
+// Opening screen: title, introduction, and the sections for each way to play
+function welcomeHtml(msg){
+ var err=msg?"<p class='welcome-err' role='alert'>"+esc(msg)+"</p>":"";
+ return "<header class='welcome-hero'>"+
+  "<svg class='route-art' viewBox='0 0 360 120' aria-hidden='true' focusable='false'>"+
+  "<path class='route-line' d='M24 92 C 70 30, 120 104, 170 58 S 280 24, 336 44'/>"+
+  "<circle class='route-stop' cx='24' cy='92' r='5'/>"+
+  "<circle class='route-stop' cx='170' cy='58' r='4'/>"+
+  "<circle class='route-goal' cx='336' cy='44' r='7'/>"+
+  "</svg>"+
+  "<p class='kicker'>A solo travel RPG</p>"+
+  "<h1 class='wordmark'>Role Around<span>the World</span></h1>"+
+ "</header>"+
+ "<p class='intro'>Set out from Trafalgar Square with a budget, a clock and a destination you have never seen before. Each leg sends you somewhere new on the globe, and you choose how to get there: trains, coaches, ferries and whatever else the road offers. Arrive on time to earn a bonus, or spend freely and risk running late. When you land, try to pin where a photo was taken on an unlabelled map. Each leg starts where the last one ended, so the campaign carries you round the world.</p>"+
+ "<section class='welcome-sec' aria-labelledby='sec-campaign'>"+
+  "<h2 id='sec-campaign'>Campaign</h2>"+
+  "<div class='welcome-card featured'>"+
+   "<h3>Start a new campaign</h3>"+
+   "<p class='mute'>One continuing journey across the world. Your money, travel journal and legs carry over from one destination to the next.</p>"+
+   err+
+   "<div class='row'><button class='btn' onclick='begin()'>Start journey</button><a class='link-btn' href='rules.html'>Rules and guide</a></div>"+
+  "</div>"+
+ "</section>"+
+ "<section class='welcome-sec' aria-labelledby='sec-more'>"+
+  "<h2 id='sec-more'>More ways to play</h2>"+
+  "<div class='welcome-grid'>"+
+   "<div class='welcome-card soon' aria-disabled='true'>"+
+    "<span class='badge'>Coming soon</span><h3>Classic itineraries</h3>"+
+    "<p class='mute'>Shorter, set routes with a fixed start and finish, for a quick game.</p></div>"+
+   "<div class='welcome-card soon' aria-disabled='true'>"+
+    "<span class='badge'>Coming soon</span><h3>Guided tours</h3>"+
+    "<p class='mute'>Themed journeys with stops chosen for you.</p></div>"+
+  "</div>"+
+ "</section>"+
+ testPickerHtml();
+}
 function render(msg){
  if(stranded())S.over="broke";
- save();var h="<h1>Role Around the World</h1>";
+ save();
  if(!S){
-  h+="<p class='sub'>Set out from Trafalgar Square, discover a new destination each leg, and make your own way there. Manage your time and money, keep a travel journal, and take on a photo challenge when you arrive. Your campaign can continue for as long as you like.</p><div class='panel'>"+(msg?"<p style='color:var(--bad)'>"+esc(msg)+"</p>":"")+"<div class='row' style='margin-top:12px'><button class='btn' onclick='begin()'>Start journey</button></div><p class='mute' style='margin:14px 0 0'><a href='rules.html'>Rules and guide</a></p></div>"+testPickerHtml();
-  var app=document.getElementById("app");app.classList.remove("wide");app.innerHTML=h;
+  document.body.classList.remove("mapscreen");
+  var app=document.getElementById("app");app.classList.remove("wide");app.innerHTML=welcomeHtml(msg);
   return}
+ var h="<h1 class='sr-only'>Role Around the World</h1>";
+ var mapped=S.phase!=="rest";
+ document.body.classList.toggle("mapscreen",mapped);
  var st=status();
- h+="<div class='hdr'><div class='r1'><span><b>"+clk(S.h)+"</b></span><span><b>\u00a3"+Math.round(S.cash)+"</b></span><span class='st'><span aria-hidden='true'>"+st[0]+"</span> "+st[1]+"</span></div><div class='r2'><div><small>From</small>"+(S.start=="lon"?"Trafalgar Square":N[S.start].n)+"</div><div class='cur'><small>Now</small>"+N[S.loc].n+"</div><div><small>To "+(S.phase=="plan"&&!S.plan||S.phase=="routes"&&!S.route?"?":arrow(S.loc,S.goal))+"</small>"+N[S.goal].n+"</div></div><div class='rv'>Target "+stamp(S.target||0)+"</div></div>";
+ h+="<div class='hdr'><div class='r1'><span><b>"+clk(S.h)+"</b><small class='rv'>Target "+stamp(S.target||0)+"</small></span><span><b>\u00a3"+Math.round(S.cash)+"</b></span><span class='st'><span aria-hidden='true'>"+st[0]+"</span> "+st[1]+"</span></div><div class='r2'><div class='cur'><small>Now</small>"+N[S.loc].n+"</div><div><small>To "+(S.phase=="plan"&&!S.plan||S.phase=="routes"&&!S.route?"?":arrow(S.loc,S.goal))+"</small>"+N[S.goal].n+"</div></div></div>";
+ h+=mapped?mapDockHtml()+"<div class='actions'>":"";
  h+="<nav class='panel-nav' aria-label='Game panels'><button type='button' data-panel-target='play'>Game</button><button type='button' data-panel-target='journal'>Journal</button><button type='button' data-panel-target='inventory'>Inventory</button></nav><p class='panel-hint'>Swipe between panels or choose a section</p><div class='game-panels' id='panel-track'><section class='game-panel' data-game-panel='play' aria-label='Game'>";
  if(S&&S.phase=="plan")h+=planIntro();
- if(S&&S.phase!=="rest")h+="<div class='row tight modebar'><div class='modes'><button class='btn alt' data-mode='streets'>Streets</button><button class='btn alt' data-mode='sat'>Satellite</button><button class='btn alt' data-mode='hybrid'>Hybrid</button></div><button class='btn alt' onclick='mfit()'>Fit journey</button></div>";if(S&&S.phase!=="rest")h+="<div id='sharedmap' class='smap'></div>";
  if(S.phase==="rest"){h+=restPage();}else if(S.over){
   var m=S.over=="broke"?"Stranded: you can't afford any onward fare from "+N[S.loc].n+".":(S.bonus?"You arrived on time.":"You arrived after the target time.");
   h+="<div class='panel'><p class='big'>"+m+"</p><p class='mute'>Leg "+S.camp.legs+" complete. You carry \u00a3"+Math.max(0,Math.round(S.cash))+" into the next leg"+(S.bonus?", including the \u00a3"+BONUS+" on-time bonus":"")+", plus \u00a3"+INCOME+" income for the next leg.</p>"+restHtml()+"<div class='row'><button class='btn' onclick='restStart()'>Rest day</button></div></div>"
@@ -816,6 +859,7 @@ function render(msg){
    h+="</div>"}
  }
  h+="<button class='link' onclick='if(confirm(\"End your campaign? Saved progress will be cleared.\"))reset()'>End campaign</button></section><section class='game-panel' data-game-panel='journal' aria-label='Travel journal'>"+journalPanelHtml()+"</section><section class='game-panel' data-game-panel='inventory' aria-label='Money and inventory'>"+inventoryPanelHtml()+"</section></div>";
+ if(mapped)h+="</div>";
  var app=document.getElementById("app");app.classList.add("wide");app.innerHTML=h;drawMap();bindPanels();bindModes();fillFlavour();fillRouteFlavour();if(S&&(S.phase=="lastmile"||S.phase=="interim")&&!S.over)LM.attach(document.getElementById("lm"))
 }
 // Startup: show the start screen straight away; if a campaign is saved, load its regions first, then resume it
@@ -823,7 +867,7 @@ load();
 if(S&&S.phase=="interim")S.phase="move";
 if(S){journeyReady(S.start,S.goal).then(function(){if(S&&S.phase=="lastmile"&&!S.over)startLM();render()},function(err){S=null;render("Could not load the saved map: "+(err&&err.message||err))})}
 else render();
-window.addEventListener("resize",function(){drawMap()});
+window.addEventListener("resize",function(){drawMap();if(MJ.p)MJ.p.then(function(m){if(m)m.resize()})});
 
 // Safety net: if drawing the screen fails, show what happened and a way to restart, rather than a blank page.
 (function(){
