@@ -5,7 +5,7 @@ var MODE={tube:"metro",bus:"bus",coach:"coach",rail:"train",hsr:"fast train",fer
 
 function hav(a,b){var A=N[a],B=N[b],r=Math.PI/180,x=(B.lo-A.lo)*r*Math.cos((A.la+B.la)/2*r),y=(B.la-A.la)*r;return Math.sqrt(x*x+y*y)*6371}
 function arrow(a,b){if(a==b)return"\u2713";var A=N[a],B=N[b],r=Math.PI/180,x=(B.lo-A.lo)*Math.cos((A.la+B.la)/2*r),y=B.la-A.la,i=Math.round(((Math.atan2(x,y)/r+360)%360)/45)%8;return["\u2191 N","\u2197 NE","\u2192 E","\u2198 SE","\u2193 S","\u2199 SW","\u2190 W","\u2196 NW"][i]}
-function status(){if(S.phase==="arrive")return["\ud83c\udf89","Arrived"];if(S.phase==="rest")return["\ud83d\udecf\ufe0f","Rest day"];if(S.over)return["\ud83c\udfc1","Finished"];if(S.phase=="plan")return["\ud83e\udded","Planning"];if(S.phase=="routes")return["\ud83d\uddfa\ufe0f","Choosing a route"];if(S.phase=="lastmile")return["\ud83d\udccd","Checkpoint"];if(S.phase=="interim")return["\ud83d\udccd","Checkpoint work"];if(S.phase=="stay")return["\ud83d\udecf\ufe0f","Finding a bed"];return{r:["\ud83d\ude86","Train station"],b:["\ud83d\ude8c","Bus station"],f:["\u26f4\ufe0f","Ferry terminal"],a:["\u2708\ufe0f","Airport"]}[S.term]}
+function status(){if(S.phase==="wait")return["\ud83d\udd52","Waiting"];if(S.phase==="arrive")return["\ud83c\udf89","Arrived"];if(S.phase==="rest")return["\ud83d\udecf\ufe0f","Rest day"];if(S.over)return["\ud83c\udfc1","Finished"];if(S.phase=="plan")return["\ud83e\udded","Planning"];if(S.phase=="routes")return["\ud83d\uddfa\ufe0f","Choosing a route"];if(S.phase=="lastmile")return["\ud83d\udccd","Checkpoint"];if(S.phase=="interim")return["\ud83d\udccd","Checkpoint work"];if(S.phase=="stay")return["\ud83d\udecf\ufe0f","Finding a bed"];return{r:["\ud83d\ude86","Train station"],b:["\ud83d\ude8c","Bus station"],f:["\u26f4\ufe0f","Ferry terminal"],a:["\u2708\ufe0f","Airport"]}[S.term]}
 function dir(a,b){var A=N[a],B=N[b],r=Math.PI/180,x=(B.lo-A.lo)*Math.cos((A.la+B.la)/2*r),y=B.la-A.la,g=(Math.atan2(x,y)/r+360)%360;return["north","north-east","east","south-east","south","south-west","west","north-west"][Math.round(g/45)%8]}
 function val(a,b,m){
  var d=hav(a,b)*1.25,k=IDX[N[a].c],uk=N[a].c=="U",h,c;
@@ -225,156 +225,7 @@ function fillRouteFlavour(){
  var from=S.start=="lon"?"London":N[S.start].n,to=N[S.goal].n,key=S.start+">"+S.goal;
  var current=document.getElementById("route-flavour");if(current)current.textContent=routeFlavourFallback(from,to,S.opts)
 }
-// ============ REST DAY ============
-// After a leg, the rest day is a free day in the arrival town: trade at the stall, find buyers, then leave at 8am on day x+2.
-// Stock, prices and buyers come from the Groq proxy, and are scored on one universal 1 to 10 scale (see the market prototype).
-var MK_KINDS=["luxury","useful","cultural","food"];
-var MK_BAND_NEUTRAL={character:"No clear character, so buyers want things in the usual way.",weights:{luxury:3,useful:3,cultural:3,food:3}};
-var MK_CAP=6;
 function mkHash(str){var h=2166136261;for(var i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
-function mkRand(){var parts=Array.prototype.slice.call(arguments),a=mkHash(parts.join("|"));a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}
-function mkRoll(lo,hi){var parts=Array.prototype.slice.call(arguments,2);return lo+(hi-lo)*mkRand.apply(null,parts)}
-function mkMoney(v){return Math.round(15*Math.pow(1.5,Math.min(10,Math.max(1,v))-1))}
-function mkBuy(v,supply){return mkMoney(v)*(0.6+0.08*(11-supply))}
-function mkSell(v,demand){return mkMoney(v)*(0.6+0.08*demand)}
-function mkClamp(v,d){var n=Math.round(Number(v));if(!isFinite(n))n=d;return Math.min(10,Math.max(1,n))}
-function mkJson(text){var t=String(text||"").trim().replace(/^```(?:json)?\s*/i,"").replace(/\s*```$/,"");try{return JSON.parse(t)}catch(e){var a=t.indexOf("{"),b=t.lastIndexOf("}");if(a>=0&&b>a){try{return JSON.parse(t.slice(a,b+1))}catch(e2){}}throw new Error("unexpected format")}}
-function mkAsk(prompt){return fetch(FLAVOUR_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:FLAVOUR_MODEL,messages:[{role:"user",content:prompt}],temperature:0.9})}).then(function(r){if(!r.ok)throw new Error("status "+r.status);return r.json()}).then(function(j){return mkJson(j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content)})}
-function mkPips(n){var h="<span class='pips'>";for(var i=1;i<=10;i++)h+="<i"+(i<=n?" class='on'":"")+"></i>";return h+"</span>"}
-function mkGbp(n){return "\u00a3"+Math.round(n).toLocaleString("en-GB")}
-function mkCity(){return N[S.goal]?N[S.goal].n:""}
-function mkDayNo(){return arrDay()+1}
-function mkMarket(){
- var c=S.camp;if(!c.market||c.market.key!==mkCity()+"|"+mkDayNo())c.market={key:mkCity()+"|"+mkDayNo(),stall:null,profile:null};
- return c.market
-}
-function mkSeed(){return(S.camp&&S.camp.seed)||1}
-// One request for everything the market needs: the town's profile, its stock and a buyer for each unsold item
-function mkVisitPrompt(needStall,todo){
- var c=mkCity(),parts=["You are producing a travel game set in "+c+". Answer every part below in one reply."];
- if(needStall)parts.push("PROFILE: describe what the buyers of "+c+" tend to want, using general knowledge of the town's wealth, cost of living, fashions, working economy and cultural life. Give character as one short phrase, and weights scoring each kind of item from 1 (little interest) to 5 (strong interest), with 3 as neutral: luxury (fine craft, jewellery, fragrance), useful (tools, cookware, textiles, staples), cultural (folk art, instruments, ritual objects), food (produce, preserves, drink). A fashionable affluent city leans to luxury; a working port or farming region leans to useful goods.");
- if(needStall)parts.push("STOCK: list 3 to 5 specialist items genuinely associated with "+c+": local crafts, foods, produce or trades a visitor could buy from a maker or market there. Be specific and avoid generic goods. For each give name; craft (who makes it, one short phrase); origin_note (12 words maximum); value: a whole number 1 to 10 on a universal scale that means the same anywhere (1 is an everyday item, 10 a rare treasure); supply: a whole number 1 to 10 for how readily available it is in "+c+" (10 abundant, 1 scarce); kind: one of luxury, useful, cultural or food. Spread scores across the range: a typical town should sit around 5.");
- if(todo.length)parts.push("BUYERS: for each traveller item listed below, invent one local buyer who would realistically be shopping in "+c+". Give name; type (dealer, collector, shop owner or agent); line: one in-character sentence about the item and where they might try to sell it, which can be far away; demand: a whole number 1 to 10 for how much "+c+"'s buyers want this kind of item, on the same universal scale as the item's value, based on the town's wealth, climate, tastes, existing crafts and how far the item is from local life. Many should be 2 to 5, and only a genuine match 8 or more. savvy: a whole number 1 to 5 for how well they know the trade. Copy each item's ref exactly. Items: "+JSON.stringify(todo.map(function(x){return{ref:x.uid,name:x.name,craft:x.craft,origin:x.origin,value:x.value}})));
- var shape=[];
- if(needStall)shape.push('"character":"","weights":{"luxury":3,"useful":3,"cultural":3,"food":3},"items":[{"name":"","craft":"","origin_note":"","value":5,"supply":5,"kind":"useful"}]');
- if(todo.length)shape.push('"buyers":[{"ref":0,"name":"","type":"","line":"","demand":4,"savvy":3}]');
- parts.push("Return ONLY valid JSON, with no markdown: {"+shape.join(",")+"}");
- return parts.join("\n\n");
-}
-function passingDealer(){return{name:'A passing dealer',type:'dealer',line:'Takes a look, shrugs, and makes an offer.',demand:4,savvy:3}}
-function mkBuyer(b){return{name:String(b.name||'A buyer').slice(0,60),type:String(b.type||'dealer').slice(0,20),line:String(b.line||'').slice(0,300),demand:mkClamp(b.demand,4),savvy:Math.min(5,Math.max(1,Math.round(Number(b.savvy)||3)))}}
-function mkApply(j,needStall,todo){
- var m=mkMarket();
- if(needStall){
-  var w=j.weights||{},weights={};MK_KINDS.forEach(function(k){weights[k]=Math.min(5,Math.max(1,Math.round(Number(w[k])||3)))});
-  var list=(j.items||[]).slice(0,5);if(!list.length)throw new Error('no items');
-  m.profile={character:String(j.character||'').slice(0,120),weights:weights};
-  m.stall=list.map(function(x,i){var id='d'+mkDayNo()+'i'+i;var item={name:String(x.name||'Unnamed').slice(0,60),craft:String(x.craft||'').slice(0,90),origin:String(x.origin_note||'').slice(0,120),value:mkClamp(x.value,5),supply:mkClamp(x.supply,5),kind:MK_KINDS.indexOf(x.kind)>=0?x.kind:'useful',id:id};item.ask=Math.round(mkBuy(item.value,item.supply)*mkRoll(0.95,1.05,mkSeed(),mkCity(),mkDayNo(),id,'ask'));return item});
- }
- var byRef={};(j.buyers||[]).forEach(function(b){byRef[String(b.ref)]=b});
- todo.forEach(function(x){var b=byRef[String(x.uid)];x.buyer=b?mkBuyer(b):passingDealer()});
-}
-function mkFallback(needStall,todo){
- var m=mkMarket();
- if(needStall){m.profile=MK_BAND_NEUTRAL;m.stall=mkDemoStock().map(function(x,i){var id='d'+mkDayNo()+'i'+i;return Object.assign({},x,{id:id,ask:Math.round(mkBuy(x.value,x.supply)*mkRoll(0.95,1.05,mkSeed(),mkCity(),mkDayNo(),id,'ask'))})})}
- todo.forEach(function(x){if(!x.buyer)x.buyer=passingDealer()});
-}
-function restVisit(){
- var m=mkMarket();S.camp.marketOpen=true;
- var needStall=!m.stall,todo=S.camp.pack.filter(function(x){return!x.buyer});
- if(m.finding||(!needStall&&!todo.length)){render();return}
- m.finding=true;render();
- var pre=MK_PRE&&needStall&&MK_PRE.key===mkCacheKey()&&todo.every(function(x){return MK_PRE.uids.indexOf(x.uid)>=0})?MK_PRE.promise:null;
- MK_PRE=null;
- (pre||mkAsk(mkVisitPrompt(needStall,todo)))
-  .then(function(j){mkApply(j,needStall,todo)})
-  .catch(function(){mkFallback(needStall,todo)})
-  .then(function(){m.finding=false;render()});
-}
-function mkDemoStock(){return[
- {name:"Hand-thrown clay vessel",craft:"Local potter's workshop",origin:"Clay from the nearby hills, a long tradition",value:3,supply:9,kind:"useful"},
- {name:"Aged local olive oil",craft:"Family press",origin:"Pressed from groves outside the old walls",value:5,supply:6,kind:"food"},
- {name:"Hand-woven textile",craft:"Weaver's cooperative",origin:"A pattern unique to this town's looms",value:8,supply:2,kind:"cultural"}]}
-function restBuyAt(i){
- var m=mkMarket(),x=m.stall&&m.stall[i];
- if(!x||S.cash<x.ask||S.camp.pack.length>=MK_CAP)return;
- S.cash-=x.ask;
- S.camp.pack.push(Object.assign({},x,{uid:S.camp.nextUid=(S.camp.nextUid||0)+1,boughtIn:mkCity(),buyer:null}));
- say("Bought "+x.name+" in "+mkCity()+" for "+mkGbp(x.ask)+".");render();
-}
-// The offer: the town's view of the item, moved by what the town wants from its profile, with a roll narrowed by savvy
-function restEffDemand(x){var m=mkMarket(),b=x.buyer||{demand:4},w=((m.profile||MK_BAND_NEUTRAL).weights||{})[x.kind]||3;return Math.min(10,Math.max(1,b.demand+Math.round(w-3)))}
-function restOffer(x){
- var b=x.buyer||{savvy:3},base=mkSell(x.value,restEffDemand(x)),width=0.36-0.06*b.savvy,
-  r=mkRoll(-1,1,mkSeed(),mkCity(),mkDayNo(),x.id||x.uid,"offer"),key=mkCity()+"|"+x.name,
-  repeat=Math.max(0.5,1-0.15*((S.camp.sales||{})[key]||0));
- return Math.max(5,Math.round(base*(1+width*r)*repeat))
-}
-function restSell(uid){
- var i=S.camp.pack.findIndex(function(p){return p.uid===uid});if(i<0)return;
- var x=S.camp.pack[i],price=restOffer(x);
- S.camp.pack.splice(i,1);S.cash+=price;
- S.camp.sales=S.camp.sales||{};var key=mkCity()+"|"+x.name;S.camp.sales[key]=(S.camp.sales[key]||0)+1;
- say("Sold "+x.name+" in "+mkCity()+" to "+(x.buyer?x.buyer.name:"a buyer")+" for "+mkGbp(price)+" (paid "+mkGbp(x.ask)+").");render();
-}
-function restLeave(){nextLeg()}
-function restStart(){
- S.phase="rest";S.camp.market=null;S.camp.marketOpen=false;say("Rest day in "+mkCity()+".");render();
-}
-function restCloseMarket(){S.camp.marketOpen=false;render()}
-function restPage(){
- var arr=arrDay(),city=mkCity();
- var tl="<div class='tl'><div><b>Arrived</b>day "+arr+"</div><div class='now'><b>Rest day</b>day "+(arr+1)+"</div><div><b>Leave 8am</b>day "+(arr+2)+"</div></div>";
- var h="<div class='panel'><h2>Rest day in "+esc(city)+"</h2><p class='mute mb6'>A free day. Visit the market to trade, explore the town, then leave at 8am.</p>"+tl+"</div>";
- h+=S.camp.marketOpen?marketHtml():"<div class='panel'><h2>Market</h2><p class='mute mb10'>Sell what you carry and buy local goods to take on the next leg.</p><button class='btn' onclick='restVisit()'>Visit the market</button></div>";
- h+=thingsHtml();
- h+="<div class='panel'><button class='btn' onclick='restLeave()'>Leave for the next leg (8am, day "+(arr+2)+")</button><p class='mute mt8'>Items you're carrying come with you. Buyers are found afresh in each town.</p></div>";
- return h
-}
-// Market view: goods to sell first, then the stock to buy
-function marketHtml(){
- var m=mkMarket(),busy=!!m.finding,unsold=S.camp.pack.some(function(x){return!x.buyer});
- var h="<div class='panel'><h2>Goods for trade ("+S.camp.pack.length+"/"+MK_CAP+")</h2>";
- if(!S.camp.pack.length)h+="<p class='mute mb8'>Nothing to sell yet. Buy local goods below.</p>";
- else h+=packSellHtml();
- if(unsold&&!busy)h+="<div class='row mt10'><button class='btn alt' onclick='restVisit()'>Find buyers for my pack</button></div>";
- h+="</div><div class='panel'><h2>Buy local goods</h2>";
- if(!m.stall)h+="<p class='mute'>"+(busy?"Asking around the market\u2026":"The market is closed today.")+"</p>";
- else{
-  var full=S.camp.pack.length>=MK_CAP;
-  h+="<p class='mute mb8'>"+esc(m.profile&&m.profile.character?m.profile.character:"")+"</p>";
-  h+="<div class='mgrid'>"+m.stall.map(function(x,i){
-   var owned=S.camp.pack.some(function(p){return p.id===x.id}),can=!owned&&!full&&S.cash>=x.ask;
-   return"<div class='mcard'><b>"+esc(x.name)+"</b><div class='mute fine'>"+esc(x.craft)+"</div><div class='mute fine'><em>"+esc(x.origin)+"</em></div>"+
-    "<div class='mstats'>Value <b>"+x.value+"</b> "+mkPips(x.value)+" &nbsp; Supply <b>"+x.supply+"</b> "+mkPips(x.supply)+"</div>"+
-    "<div class='mrow'><b class='price'>"+mkGbp(x.ask)+"</b><button class='btn' "+(can?"":"disabled")+" onclick='restBuyAt("+i+")'>"+(owned?"In pack":full?"Pack full":S.cash<x.ask?"Too dear":"Buy")+"</button></div></div>"
-  }).join("")+"</div>";
- }
- h+="<div class='row mt12'><button class='btn alt' onclick='restCloseMarket()'>Close market</button></div></div>";
- return h
-}
-// Goods in the pack, each with its buyer and offer
-function packSellHtml(){
- return "<div class='mgrid sell'>"+S.camp.pack.map(function(x){
-  var o=restOffer(x),d=o-x.ask,dm=restEffDemand(x);
-  var buyer=x.buyer?"<div class='buyer'><b>"+esc(x.buyer.name)+"</b> ("+esc(x.buyer.type)+"): "+esc(x.buyer.line)+"<div class='mt4'>Demand here <b>"+dm+"</b> "+mkPips(dm)+" \u00b7 savvy "+x.buyer.savvy+"/5</div></div>":"<div class='mute fine'>No buyer found yet.</div>";
-  return"<div class='mcard'><b>"+esc(x.name)+"</b><div class='mute fine'>Paid "+mkGbp(x.ask)+"</div>"+buyer+
-   "<div class='mrow mt6'><b>Offer "+mkGbp(o)+"</b><span class='delta "+(d>=0?"up":"down")+"'>"+(d>=0?"+":"\u2212")+mkGbp(Math.abs(d))+"</span></div>"+
-   "<button class='btn mt6 wfull' "+(x.buyer?"":"disabled")+" onclick='restSell("+x.uid+")'>Sell</button></div>"
- }).join("")+"</div>";
-}
-// Things to do on a rest day: search links for the town
-function thingsHtml(){
- var q=function(s){return encodeURIComponent(s).replace(/%20/g,"+")},c=q(mkCity());
- var items=[
-  ["Discover the local music scene","Acts across traditional, mainstream and experimental music.","https://www.google.com/search?q=tell+me+about+the+music+scene+in+"+c+".+Give+me+examples+of+acts+covering+traditional%2C+mainstream+and+contemporary+%2F+experimental+music"],
-  ["Paint a local street scene","Painting inspiration from the town.","https://www.google.com/search?q=give+me+painting+inspiration+from+"+c+""],
-  ["Visit the local galleries and museums","What's on, and where to go.","https://www.google.com/search?q=art+galleries+and+museums+in+"+c],
-  ["Watch a short documentary","Films about the town and its surroundings.","https://www.google.com/search?q=short+documentary+about+"+c+"&udm=7"],
-  ["Learn the town's history","Key events and places from its past.","https://www.google.com/search?q=history+of+"+c]
- ];
- return "<div class='panel'><h2>Things to do</h2>"+items.map(function(i){return"<a class='btn' href='"+i[2]+"' target='_blank' rel='noopener'>"+esc(i[0])+"</a><p class='mute note'>"+esc(i[1])+"</p>"}).join("")+"</div>";
-}
 function planIntro(){
  var n=N[S.goal].n;
  return"<div class='panel'><h2>Destination: "+esc(n)+"</h2><p class='flavour' id='flavour-text'>Loading an introduction to "+esc(n)+"…</p>"+"</div>"
@@ -516,7 +367,7 @@ function run(steps){
 function newJourney(a,b,air,evn,lm){
  var camp=NEXT_CAMP||{money:0,legs:1,start:0,log:[],pack:[],seed:(Math.random()*1e9)|0,sales:{},nextUid:0};NEXT_CAMP=null;
  S={legNotes:[],start:a,goal:b,air:air,ev:evn,camp:camp,setup:{air:air,evn:evn,lm:lm},lmOn:!!(lm&&lm.on),planOn:!!(lm&&lm.plan),lmClue:lm&&lm.clue,lmLevel:lm&&lm.level,rooms:[],wait:0,tired:false,pend:null,loc:a,h:0,spent:0,path:[a],times:[0],modes:[],nights:[],rev:{},log:["Begin your journey from "+(a=="lon"?"Trafalgar Square":N[a].n)+" to "+N[b].n+"."],phase:(lm&&lm.plan)?"plan":"routes",draft:[],over:null};
- S.term=terms(a)[0];S.arr=0;var B=camp.money+INCOME,p=plan(0,B),t=0;
+ S.term=terms(a)[0];S.arr=0;var B=camp.money+(camp.income||INCOME),p=plan(0,B),t=0;
  while(!p&&t++<4){B=Math.round(B*1.5);p=plan(0,B)}
  if(!p){S=null;return false}
  S.budget=B;S.cash=B;S.opt=run(p);S.opts=routeOptions(S.budget);S.target=targetFor(routePool(S.budget),S.opt);return true
@@ -528,10 +379,13 @@ function pad(n){return(n<10?"0":"")+n}
 function absH(h){return(S&&S.camp?S.camp.start:0)+h}
 function clk(h){var t=480+Math.round(absH(h)*60),d=Math.floor(t/1440),m=t%1440;return"Day "+(d+1)+", "+pad(Math.floor(m/60))+":"+pad(m%60)}
 
+// A wait of this many hours or more gives you time to look round the town before boarding
+var WAIT_MIN=3;
 function go(i){
  var o=opts()[i];if(!o||S.over||S.phase!="move"||vis().show.indexOf(i)<0||o.c>S.cash)return;
  var sc=sched(o,S.loc,S.h);
  if(sc.night){S.pend=i;S.rooms=mkRooms();S.phase="stay";return render()}
+ if(sc.dep-S.h>=WAIT_MIN){S.pend=i;S.waitDep=sc.dep;S.camp.marketOpen=false;S.phase="wait";return render()}
  hop(i,sc.dep)
 }
 // Flavour for uneventful stops: a line for the transport type, short hops (3 h or less) and long ones. {to} is the destination.
@@ -604,8 +458,7 @@ function settleHop(o,x){
  say(clk(S.h)+": "+(o.m=="shared"?sharedName(S.loc):MODE[o.m])+" to "+N[o.to].n+" ("+o.h+" h, \u00a3"+o.c+"). "+x.t);
  if(S.loc==S.goal){S.arrH=S.h;arrivalPrefetch();S.phase="arrive";return render()}
  S.arr=S.h;S.term=grp(o.m);
- if(opts(1).every(function(p){return p.c>S.cash}))S.over="broke";
- render();
+  render();
 }
 function hop(i,dep){
  if(MJ.anim)return;
@@ -810,12 +663,12 @@ function begin(){
 // Days: the campaign clock runs across legs. Arriving on day x: rest and explore on day x+1, leave 8am on day x+2.
 function arrDay(){return Math.floor((absH(S.arrH||0)+8)/24)+1}
 function restHtml(){return"<p class='mute'>Arrived "+stamp(S.arrH||0)+". Rest and explore on Day "+(arrDay()+1)+", leave 8am Day "+(arrDay()+2)+".</p>"}
-function campLogHtml(){var l=(S.camp&&S.camp.log)||[];if(!l.length)return"";return"<div class='panel'><h2>Campaign so far</h2><ol class='log'>"+l.map(function(e){return"<li>Leg "+e.leg+": "+esc(e.to)+", arrived "+e.arrived+"</li>"}).join("")+"</ol></div>"}
+function campLogHtml(){var l=(S.camp&&S.camp.log)||[];if(!l.length)return"";return"<div class='panel'><h2>Campaign so far</h2><ol class='log'>"+l.map(function(e){return"<li>Leg "+e.leg+": "+(e.stranded?"stranded in ":"arrived in ")+esc(e.to)+(e.stranded?"":" at "+esc(e.arrived))+"</li>"}).join("")+"</ol></div>"}
 function nextLeg(){
  if(!S||!S.camp)return;
- var from=S.goal,dirs=((S.camp.dirs||[]).concat([unitVec(S.start,S.goal)])).slice(-HEAD_LEGS);
- var log=(S.camp.log||[]).concat([{leg:S.camp.legs,to:N[S.goal].n,arrived:stamp(S.arrH||0)}]),start=(arrDay()+1)*24;
- var camp={money:Math.max(0,S.cash),legs:S.camp.legs+1,start:start,log:log,dirs:dirs,paid:S.camp.paid||[],pack:(S.camp.pack||[]).map(function(x){return Object.assign({},x,{buyer:null})}),seed:S.camp.seed,sales:S.camp.sales||{},nextUid:S.camp.nextUid||0};
+ var from=S.loc,dirs=((S.camp.dirs||[]).concat([unitVec(S.start,from)])).slice(-HEAD_LEGS);
+ var log=(S.camp.log||[]).concat([{leg:S.camp.legs,to:N[from].n,arrived:stamp(S.arrH||0),stranded:!!S.stranded}]),start=(arrDay()+1)*24;
+ var camp={income:S.stranded?STRANDED_INCOME:INCOME,money:Math.max(0,S.cash),legs:S.camp.legs+1,start:start,log:log,dirs:dirs,paid:S.camp.paid||[],pack:(S.camp.pack||[]).map(function(x){return Object.assign({},x,{buyer:null})}),seed:S.camp.seed,sales:S.camp.sales||{},nextUid:S.camp.nextUid||0};
  var st=S.setup||{air:false,evn:true,lm:{on:true,clue:"off",level:"mixed",plan:true}},tries=0;
  var attempt=function(){
   var to=pickDest(from,dirs);
@@ -872,15 +725,6 @@ function arrivalPrefetch(){
  var g=N[S.goal];
  if(S.lmOn&&g.l&&window.LM&&LM.prefetch)LM.prefetch({name:g.n,lat:g.la,lon:g.lo,landmark:g.l});
  prefetchMarket();
-}
-var MK_PRE=null;
-function mkCacheKey(){return mkCity()+"|"+mkDayNo()}
-// Start the market's stock and buyers for the pack as it stands, so the visit is ready when the player gets there
-function prefetchMarket(){
- var todo=S.camp.pack.filter(function(x){return!x.buyer});
- var entry={key:mkCacheKey(),uids:todo.map(function(x){return x.uid}),promise:mkAsk(mkVisitPrompt(true,todo))};
- MK_PRE=entry;
- entry.promise.catch(function(){if(MK_PRE===entry)MK_PRE=null});
 }
 function arriveHtml(){
  var g=N[S.goal].n,on=S.h<=S.target+1e-9,notes=S.legNotes||[];
@@ -987,7 +831,7 @@ function welcomeHtml(msg){
  testPickerHtml();
 }
 function render(msg){
- if(stranded())S.over="broke";
+ if(stranded()&&!canInterim())strandLeg();
  save();
  if(!S){
   document.body.classList.remove("mapscreen","map-min","map-full");LAST_CLOCK=null;
@@ -1009,7 +853,7 @@ function render(msg){
  }else{
 
   if(S.phase=="lastmile"||S.phase=="interim")h+="<div class='panel'><h2>"+(S.phase=="interim"?"Checkpoint work":"Checkpoint")+"</h2><div id='lm'></div></div>";else if(S.phase=="plan")h+=planPanel();else if(S.phase=="routes")h+=routesPanel();
-  if(S.phase=="lastmile"||S.phase=="interim"||S.phase=="plan"||S.phase=="routes"){}else if(S.phase=="arrive"){h+=arriveHtml();}else if(S.phase=="stay"){var po=opts()[S.pend],ss=sched(po,S.loc,S.h);h+="<div class='panel'><h2>No service until "+clk(ss.dep)+"</h2><p class='mb10'>Where will you sleep in "+N[S.loc].n+"?</p>";S.rooms.forEach(function(x,k){h+="<button class='card' onclick='stay("+k+")'"+(x.c>S.cash?" disabled":"")+"><b>"+x.n+", \u00a3"+x.c+"</b><span>"+(x.q?"A proper night's rest.":"Cheap, but you may sleep badly.")+"</span></button>"});h+="<button class='card' onclick='stay(-1)'><b>Spend the night at the station</b><span>Free, but you will be tired: 1 h lost on the next leg.</span></button>";if(!S.rooms.length)h+="<p class='mb10'>No rooms are free in town tonight.</p>";h+="<button class='link' onclick='S.phase=\"move\";S.pend=null;render()'>Choose a different option</button></div>"}else{
+  if(S.phase=="lastmile"||S.phase=="interim"||S.phase=="plan"||S.phase=="routes"){}else if(S.phase=="arrive"){h+=arriveHtml();}else if(S.phase=="wait"){h+=waitHtml();}else if(S.phase=="stay"){var po=opts()[S.pend],ss=sched(po,S.loc,S.h);h+="<div class='panel'><h2>No service until "+clk(ss.dep)+"</h2><p class='mb10'>Where will you sleep in "+N[S.loc].n+"?</p>";S.rooms.forEach(function(x,k){h+="<button class='card' onclick='stay("+k+")'"+(x.c>S.cash?" disabled":"")+"><b>"+x.n+", \u00a3"+x.c+"</b><span>"+(x.q?"A proper night's rest.":"Cheap, but you may sleep badly.")+"</span></button>"});h+="<button class='card' onclick='stay(-1)'><b>Spend the night at the station</b><span>Free, but you will be tired: 1 h lost on the next leg.</span></button>";if(!S.rooms.length)h+="<p class='mb10'>No rooms are free in town tonight.</p>";h+="<button class='link' onclick='S.phase=\"move\";S.pend=null;render()'>Choose a different option</button></div>"}else{
    var all=opts(),v=vis(),last="";
    h+="<div class='panel'><h2>Where next?</h2>"+(canInterim()?"<button class='card' onclick='interimLM()'><b>"+(needsEmergencyWork()?"Earn money for the next fare":"Stop for checkpoint work")+"</b><span>Spend 2 hours on a photo challenge in "+esc(N[S.loc].n)+" and earn £"+PAY_MIN+" to £"+PAY_MAX+".</span></button>":"");
    v.show.sort(function(a,b){var x=ORD.indexOf(all[a].m)-ORD.indexOf(all[b].m);return x||all[a].h-all[b].h});
