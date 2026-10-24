@@ -916,6 +916,34 @@ var MAPVIEW="std";
 // Switch the map between its default 4:3 size, minimised and full screen
 function mapView(v){MAPVIEW=(MAPVIEW===v)?"std":v;render()}
 // Keep the header's height in a CSS variable, so a full-screen map can sit just below it
+// Clock: each digit sits in a column that rolls to its new value when the time moves on
+var LAST_CLOCK=null;
+function clockText(){return S.phase==="rest"?"Day "+(arrDay()+1)+" \u00b7 rest":clk(S.h)}
+function clockHtml(s){
+ var cols=s.split("").map(function(c){
+  if(!/\d/.test(c))return "<span class='dl'>"+esc(c)+"</span>";
+  var st="";for(var k=0;k<10;k++)st+="<i>"+k+"</i>";
+  return "<span class='dc'><span class='ds' data-d='"+c+"'>"+st+"</span></span>";
+ }).join("");
+ return "<span class='sr-only'>"+esc(s)+"</span><span aria-hidden='true'>"+cols+"</span>";
+}
+// Rolls each digit from the previous time to the new one; digits that did not change stay put
+function animateClock(oldS,newS){
+ var strips=document.querySelectorAll(".hdr .ds");if(!strips.length)return;
+ var oldD=oldS?(oldS.match(/\d/g)||[]).map(Number):[],anim=!reduceMotion();
+ strips.forEach(function(el,j){
+  var to=+el.getAttribute("data-d"),from=j<oldD.length?oldD[j]:to;
+  el.style.transition="none";
+  el.style.transform="translateY(-"+from+"em)";
+  if(from!==to&&anim){
+   void el.offsetWidth;
+   el.style.transition="transform .6s cubic-bezier(.2,.7,.2,1)";
+   el.style.transform="translateY(-"+to+"em)";
+  }else{
+   el.style.transform="translateY(-"+to+"em)";
+  }
+ });
+}
 function setHdrVar(){var h=document.querySelector(".hdr");document.documentElement.style.setProperty("--hdr-h",(h?h.getBoundingClientRect().bottom:0)+"px")}
 // Map dock: the map fills the top half of the screen, with its view buttons laid over it; the actions scroll below
 function mapDockHtml(){
@@ -962,7 +990,7 @@ function render(msg){
  if(stranded())S.over="broke";
  save();
  if(!S){
-  document.body.classList.remove("mapscreen","map-min","map-full");
+  document.body.classList.remove("mapscreen","map-min","map-full");LAST_CLOCK=null;
   var app=document.getElementById("app");app.classList.remove("wide");app.innerHTML=welcomeHtml(msg);
   return}
  var h="<h1 class='sr-only'>Role Around the World</h1>";
@@ -971,7 +999,7 @@ function render(msg){
  document.body.classList.toggle("map-min",mapped&&MAPVIEW==="min");
  document.body.classList.toggle("map-full",mapped&&MAPVIEW==="full");
  var st=status();
- h+="<div class='hdr'><div class='r1'><span><b>"+(S.phase==="rest"?"Day "+(arrDay()+1)+" \u00b7 rest":clk(S.h))+"</b>"+(S.phase==="rest"?"":"<small class='rv'>Target "+stamp(S.target||0)+"</small>")+"</span><span><b>\u00a3"+Math.round(S.cash)+"</b></span><span class='st'><span aria-hidden='true'>"+st[0]+"</span> "+st[1]+"</span></div><div class='r2'><div class='cur'><small>Now</small>"+N[S.loc].n+"</div><div><small>To</small>"+(S.phase==="rest"?"?":S.phase=="plan"&&!S.plan||S.phase=="routes"&&!S.route?"?":arrow(S.loc,S.goal))+" "+(S.phase==="rest"?"Next leg":N[S.goal].n)+"</div></div></div>";
+ h+="<div class='hdr'><div class='r1'><span><b>"+clockHtml(clockText())+"</b>"+(S.phase==="rest"?"":"<small class='rv'>Target "+stamp(S.target||0)+"</small>")+"</span><span><b>\u00a3"+Math.round(S.cash)+"</b></span><span class='st'><span aria-hidden='true'>"+st[0]+"</span> "+st[1]+"</span></div><div class='r2'><div class='cur'><small>Now</small>"+N[S.loc].n+"</div><div><small>To</small>"+(S.phase==="rest"?"?":S.phase=="plan"&&!S.plan||S.phase=="routes"&&!S.route?"?":arrow(S.loc,S.goal))+" "+(S.phase==="rest"?"Next leg":N[S.goal].n)+"</div></div></div>";
  h+=mapped?mapDockHtml()+"<div class='actions'>":"";
  h+="<nav class='panel-nav' aria-label='Game panels'><button type='button' data-panel-target='play'>Game</button><button type='button' data-panel-target='journal'>Journal</button><button type='button' data-panel-target='inventory'>Inventory</button></nav><p class='panel-hint'>Swipe between panels or choose a section</p><div class='game-panels' id='panel-track'><section class='game-panel' data-game-panel='play' aria-label='Game'>";
  if(S&&S.phase=="plan")h+=planIntro();
@@ -994,7 +1022,7 @@ function render(msg){
  }
  h+="<button class='link' onclick='if(confirm(\"End your campaign? Saved progress will be cleared.\"))reset()'>End campaign</button></section><section class='game-panel' data-game-panel='journal' aria-label='Travel journal'>"+journalPanelHtml()+"</section><section class='game-panel' data-game-panel='inventory' aria-label='Money and inventory'>"+inventoryPanelHtml()+"</section></div>";
  if(mapped)h+="</div>";
- var app=document.getElementById("app");app.classList.add("wide");app.innerHTML=h;setHdrVar();drawMap();bindPanels();bindModes();fillFlavour();fillRouteFlavour();if(S&&(S.phase=="lastmile"||S.phase=="interim")&&!S.over)LM.attach(document.getElementById("lm"))
+ var app=document.getElementById("app");app.classList.add("wide");app.innerHTML=h;setHdrVar();animateClock(LAST_CLOCK,clockText());LAST_CLOCK=clockText();drawMap();bindPanels();bindModes();fillFlavour();fillRouteFlavour();if(S&&(S.phase=="lastmile"||S.phase=="interim")&&!S.over)LM.attach(document.getElementById("lm"))
 }
 // Startup: show the start screen straight away; if a campaign is saved, load its regions first, then resume it
 load();

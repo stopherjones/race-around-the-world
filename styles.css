@@ -267,3 +267,9 @@ a.btn{display:inline-block;text-decoration:none;text-align:center;box-sizing:bor
 .pips i{width:6px;height:9px;border-radius:2px;background:var(--line);display:inline-block}
 .pips i.on{background:var(--acc)}
 
+
+/* Clock digits: each column shows one digit at a time and rolls between them */
+.dc{display:inline-block;height:1em;line-height:1em;overflow:hidden;vertical-align:bottom;width:.62em;text-align:center}
+.dl{display:inline-block;white-space:pre}
+.ds{display:flex;flex-direction:column}
+.ds i{display:block;height:1em;line-height:1em;font-style:normal}
