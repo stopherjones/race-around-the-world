@@ -663,7 +663,7 @@ function begin(){
 // Days: the campaign clock runs across legs. Arriving on day x: rest and explore on day x+1, leave 8am on day x+2.
 function arrDay(){return Math.floor((absH(S.arrH||0)+8)/24)+1}
 function restHtml(){return"<p class='mute'>Arrived "+stamp(S.arrH||0)+". Rest and explore on Day "+(arrDay()+1)+", leave 8am Day "+(arrDay()+2)+".</p>"}
-function campLogHtml(){var l=(S.camp&&S.camp.log)||[];if(!l.length)return"";return"<div class='panel'><h2>Campaign so far</h2><ol class='log'>"+l.map(function(e){return"<li>Leg "+e.leg+": "+(e.stranded?"stranded in ":"arrived in ")+esc(e.to)+(e.stranded?"":" at "+esc(e.arrived))+"</li>"}).join("")+"</ol></div>"}
+function campLogHtml(){var l=(S.camp&&S.camp.log)||[];var save="<div class='row'><button class='btn alt' onclick='exportSave()'>Download save file</button></div>";if(!l.length)return"<div class='panel'>"+save+"</div>";return"<div class='panel'><h2>Campaign so far</h2><ol class='log'>"+l.map(function(e){return"<li>Leg "+e.leg+": "+(e.stranded?"stranded in ":"arrived in ")+esc(e.to)+(e.stranded?"":" at "+esc(e.arrived))+"</li>"}).join("")+"</ol>"+save+"</div>"}
 function nextLeg(){
  if(!S||!S.camp)return;
  var from=S.loc,dirs=((S.camp.dirs||[]).concat([unitVec(S.start,from)])).slice(-HEAD_LEGS);
@@ -795,6 +795,37 @@ function mapDockHtml(){
  return "<div class='mapdock'><div id='sharedmap' class='smap'></div><div class='mapctl'><button class='btn alt' onclick='mapView(\"min\")'>"+(min?"Restore map":"Minimise")+"</button><button class='btn alt' onclick='mapView(\"full\")'>"+(full?"Exit full screen":"Full screen")+"</button></div><div class='modebar mapbtns'><div class='modes'><button class='btn alt' data-mode='streets'>Streets</button><button class='btn alt' data-mode='sat'>Satellite</button><button class='btn alt' data-mode='hybrid'>Hybrid</button></div><button class='btn alt' onclick='mfit()'>Fit journey</button></div></div>";
 }
 // Opening screen: title, introduction, and the sections for each way to play
+// ---- Save files: download the campaign so it survives a cleared browser or a new device ----
+var SAVE_VERSION=1;
+function saveIsValid(o){
+ return!!(o&&typeof o==="object"&&o.loc&&o.camp&&o.start&&o.goal&&placeOf(o.start)&&placeOf(o.goal)&&Array.isArray(o.path)&&Array.isArray(o.modes)&&typeof o.h==="number"&&typeof o.cash==="number"&&typeof o.phase==="string");
+}
+function exportSave(){
+ if(!S)return;
+ var data={rtwSave:SAVE_VERSION,saved:new Date().toISOString(),state:S};
+ var blob=new Blob([JSON.stringify(data)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");
+ a.href=url;a.download="role-around-the-world-leg-"+(S.camp.legs)+".json";
+ document.body.appendChild(a);a.click();a.remove();
+ setTimeout(function(){URL.revokeObjectURL(url)},1000);
+}
+// Loads a save file, checking it first. A bad file leaves the current game alone.
+// An import problem: on the start screen it shows there, during a game it is an alert so the game is left alone
+function importFail(msg){if(S)alert(msg);else render(msg)}
+function importSave(file){
+ if(!file)return;
+ var r=new FileReader();
+ r.onload=function(){
+  var d;try{d=JSON.parse(r.result)}catch(e){return importFail("That file isn't a save file.")}
+  if(d&&d.rtwSave&&d.rtwSave>SAVE_VERSION)return importFail("That save was made by a newer version of the game.");
+  var o=d&&d.rtwSave?d.state:d;
+  if(!saveIsValid(o))return importFail("That file isn't a valid Role Around the World save.");
+  if(!o.setup)o.setup={air:false,evn:true,lm:{on:true,clue:"off",level:"mixed",plan:true}};
+  if(!o.camp.log)o.camp.log=[];
+  journeyReady(o.start,o.goal).then(function(){S=o;save();render()},function(err){importFail("Could not load the map for that save: "+(err&&err.message||err))});
+ };
+ r.onerror=function(){importFail("Couldn't read that file.")};
+ r.readAsText(file);
+}
 function welcomeHtml(msg){
  var err=msg?"<p class='welcome-err' role='alert'>"+esc(msg)+"</p>":"";
  return "<header class='welcome-hero'>"+
@@ -816,6 +847,11 @@ function welcomeHtml(msg){
    err+
    "<div class='row'><button class='btn' onclick='begin()'>Start journey</button><a class='link-btn' href='rules.html'>Rules and guide</a></div>"+
   "</div>"+
+ "</section>"+
+ "<section class='welcome-sec' aria-labelledby='sec-load'>"+
+  "<h2 id='sec-load'>Saved game</h2>"+
+  "<div class='welcome-card'><h3>Load a save file</h3><p class='mute'>Open a file you downloaded earlier to carry on where you left off.</p>"+
+  "<input type='file' id='saveFile' accept='.json,application/json' onchange='importSave(this.files[0])' aria-label='Choose a save file'></div>"+
  "</section>"+
  "<section class='welcome-sec' aria-labelledby='sec-more'>"+
   "<h2 id='sec-more'>More ways to play</h2>"+
