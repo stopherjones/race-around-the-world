@@ -119,7 +119,7 @@ function restSell(uid){
  var i=S.camp.pack.findIndex(function(p){return p.uid===uid});if(i<0)return;
  var x=S.camp.pack[i],price=restOffer(x);
  S.camp.pack.splice(i,1);S.cash+=price;
- S.camp.sales=S.camp.sales||{};var key=mkCity()+"|"+x.name;S.camp.sales[key]=(S.camp.sales[key]||0)+1;
+ if(price>=2*x.ask)unlockAch("profiteer");S.camp.sales=S.camp.sales||{};var key=mkCity()+"|"+x.name;S.camp.sales[key]=(S.camp.sales[key]||0)+1;
  say("Sold "+x.name+" in "+mkCity()+" to "+(x.buyer?x.buyer.name:"a buyer")+" for "+mkGbp(price)+" (paid "+mkGbp(x.ask)+").");render();
 }
 
@@ -205,7 +205,7 @@ function waitHtml(){
 
 function boardWaiting(){
  if(S.phase!=="wait")return;
- var i=S.pend,dep=S.waitDep;
+ var i=S.pend,dep=S.waitDep,c=campAch();if(c){c.waited+=Math.max(0,dep-S.h);if(c.waited>=12)unlockAch("timewaster")}
  S.pend=null;S.waitDep=null;S.camp.marketOpen=false;S.phase="move";
  hop(i,dep);
 }
