@@ -42,4 +42,3 @@ function mkOpt(r,label){
  var via=r.mid.filter(function(n){return cultRating(n)>=2||N[n].p}).sort(function(a,b){return cultRating(b)-cultRating(a)}).slice(0,3).map(function(n){return N[n].n});
  return{label:label,h:r.h,c:r.c,nights:r.nights,aboard:r.aboard,cult:r.cult,via:via,mid:r.mid,steps:r.steps,names:r.names,modes:r.modes}
 }
-function routeBrief(o){return o.label+": "+o.h.toFixed(1)+" h, \u00a3"+Math.round(o.c)+", "+o.nights+" hotel, "+o.aboard+" aboard, culture "+o.cult+"; "+o.names.map(function(n,i){return N[n].n+(i<o.modes.length?" ["+o.modes[i]+"]":"")}).join(" > ")}

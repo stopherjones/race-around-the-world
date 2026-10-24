@@ -221,3 +221,49 @@ body.map-full .smap{border-radius:0;border:0}
 
 /* Link buttons (things to do, market) share the game's green button style */
 a.btn{display:inline-block;text-decoration:none;text-align:center;box-sizing:border-box;width:100%}
+
+/* Arrival card */
+.arrive{text-align:left}
+.arrive .kicker{margin:0}
+.arrive-h{font:700 1.8rem/1.15 Georgia,"Times New Roman",serif;margin:4px 0 8px;color:var(--ink)}
+.arrive .big{margin:0 0 8px}
+
+/* Travel events: dice roll and hazard card, over the page */
+.evlayer{position:fixed;inset:0;z-index:60;background:rgba(20,24,20,.35);display:flex;align-items:center;justify-content:center;padding:16px}
+.evbox{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:16px;padding:20px;width:min(320px,100%);text-align:center;box-shadow:0 12px 32px rgba(0,0,0,.3)}
+.evlabel{margin:0;font-weight:700}
+.evicon{width:44px;height:44px;border-radius:50%;background:#b23a2e;color:#fff;font:800 1.6rem/44px Georgia,serif;margin:0 auto 10px}
+.evcard h3{font:700 1.2rem Georgia,serif;margin:0 0 6px}
+.evcard p{margin:0 0 14px}
+
+/* Spacing helpers for one-off gaps */
+.m0{margin:0}
+.mb6{margin:0 0 6px}.mb8{margin:0 0 8px}.mb10{margin:0 0 10px}
+.mt4{margin:4px 0 0}.mt6{margin:6px 0 0}.mt8{margin:8px 0 0}.mt10{margin:10px 0 0}.mt12{margin:12px 0 0}.mt14{margin:14px 0 0}
+.wfull{width:100%}
+.fine{font-size:.85rem}
+.note{margin:0 0 12px;font-size:.84rem}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.tfield{flex:1;min-width:140px}
+
+/* Rest day: three-day timeline */
+.tl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 2px}
+.tl>div{border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center;font-size:.82rem;color:var(--mute)}
+.tl>div b{display:block;color:var(--ink)}
+.tl>div.now{border-color:var(--acc);font-weight:700;color:var(--ink)}
+
+/* Market: cards for goods to sell and to buy */
+.mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.mgrid.sell{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.mcard{border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--card)}
+.mcard .btn{padding:7px 12px;font-size:.9rem}
+.mstats{font-size:.8rem;margin:4px 0}
+.mrow{display:flex;justify-content:space-between;align-items:center}
+.price{color:var(--acc)}
+.buyer{font-size:.84rem;background:var(--bg);border-radius:8px;padding:7px 8px}
+.delta{font-size:.78rem;font-weight:800}
+.delta.up{color:var(--acc)}.delta.down{color:var(--bad)}
+.pips{display:inline-flex;gap:2px;vertical-align:middle}
+.pips i{width:6px;height:9px;border-radius:2px;background:var(--line);display:inline-block}
+.pips i.on{background:var(--acc)}
+

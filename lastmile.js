@@ -2,13 +2,12 @@
 var LM=(function(){
  var root=null,R=null,map=null,built=null,pinMk=null,truthMk=null,pin=null,mode="streets",cb=null;
  function $(id){return root.querySelector("#"+id)}
-var WALK=4500,HINT_H=.25;
+var HINT_H=.25;
 function hav(a,b,c,d){var r=Math.PI/180,x=(d-b)*r*Math.cos((a+c)/2*r),y=(c-a)*r;return Math.sqrt(x*x+y*y)*6371000}
 function bearingWord(a,b,c,d){var r=Math.PI/180,x=(d-b)*Math.cos((a+c)/2*r),y=c-a,g=(Math.atan2(x,y)/r+360)%360;return["north","north-east","east","south-east","south","south-west","west","north-west"][Math.round(g/45)%8]}
 // Delay on the last mile: no delay within 100 m, then one minute for every 10 m beyond that
 function lostHours(m){return Math.max(0,m-100)/10/60}
 function tier(m){return m<50?"Spot on":m<250?"Nearly there":m<1000?"Lost for a while":"Wandered half the city"}
-function randn(){var u=1-Math.random(),v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
 function mins(h){var m=Math.round(h*60);return m<60?m+" min":Math.floor(m/60)+" h "+(m%60)+" min"}
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function distText(m){return m<1000?Math.round(m)+" m":(m/1000).toFixed(1)+" km"}

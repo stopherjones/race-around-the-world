@@ -1,8 +1,7 @@
-var VT=20,NOISE=.35,KEY="route-generator-v4",S=null,IDX={U:1.15,F:1,B:1.05,N:1.05,G:1.05,S:.85,T:.95,C:1.6,R:1.1,D:1.3,E:.7,K:.75,Y:.6,M:.7,V:.65,H:.8,Q:.6,Z:.6,J:.6,L:.75,P:.95,I:.9,O:.8,X:.6,W:.8,A:.7,a:.75,b:.85,c:.95,d:1.2,e:.7,f:.8,g:.7,h:.6,i:.6,j:1.1,k:1.2,l:1.2,m:.9,n:.95,o:.85,p:.85,q:.8,r:.8,s:.8,t:.85,u:.9,v:.8,w:.8,x:1,y:.75,z:1.2,CV:1,ST:1,KM:.8,MG:.6,MU:1.4,SC:1.8,GE:.85,AM:.9,AZ:.9,JO:.9,IL:1.4,LB:1.3,SY:.6,PS:.7,IQ:.8,IR:.8,SA:1.5,AE:1.6,QA:1.6,BH:1.4,KW:1.3,OM:1.1,YE:.6,KZ:.9,UZ:.6,TM:.9,KG:.6,TJ:.6,AF:.6,FI:1.5,EE:1,LV:.9,LT:.9,BY:.6,UA:.5,MD:.4,RO:.7,SK:.9,SI:1.1,RU:1,PT:.95,IS:1.6,FO:1.6,SH:1.4,PK:.6,IN:.5,NP:.5,BD:.5,LK:.8,MM:.5,TH:.8,LA:.5,KH:.5,VN:.5,BT:.8,CN:.6,HK:1.6,MO:1.5,TW:1.1,MN:.5,ID:.4,PH:.6,MY:.8,SG:1.5,BN:1.1,TL:.7,KP:1,KR:1.3,JP:1.6,PG:1.1,AU:1.8,NZ:1.8,FJ:.8,WS:.8,TO:.8,VU:.8,NC:1.5,SB:.9,TV:1.2,NR:1.5,PW:1.4,MH:1.2,FM:1.1,KI:1,US:2,CA:1.6,MX:1.2,GT:.8,BZ:1.6,HN:.7,SV:.8,NI:.6,CR:1.6,PA:1.2,CO:.8,VE:.6,EC:.7,PE:.7,BO:.6,BR:1,PY:.6,UY:1.4,AR:.9,CL:1.4,GY:1,SR:1,CU:.5,JM:.8,HT:.4,DO:.8,BS:2,TT:1.4,BB:1.8};
+var VT=20,KEY="route-generator-v4",S=null,IDX={U:1.15,F:1,B:1.05,N:1.05,G:1.05,S:.85,T:.95,C:1.6,R:1.1,D:1.3,E:.7,K:.75,Y:.6,M:.7,V:.65,H:.8,Q:.6,Z:.6,J:.6,L:.75,P:.95,I:.9,O:.8,X:.6,W:.8,A:.7,a:.75,b:.85,c:.95,d:1.2,e:.7,f:.8,g:.7,h:.6,i:.6,j:1.1,k:1.2,l:1.2,m:.9,n:.95,o:.85,p:.85,q:.8,r:.8,s:.8,t:.85,u:.9,v:.8,w:.8,x:1,y:.75,z:1.2,CV:1,ST:1,KM:.8,MG:.6,MU:1.4,SC:1.8,GE:.85,AM:.9,AZ:.9,JO:.9,IL:1.4,LB:1.3,SY:.6,PS:.7,IQ:.8,IR:.8,SA:1.5,AE:1.6,QA:1.6,BH:1.4,KW:1.3,OM:1.1,YE:.6,KZ:.9,UZ:.6,TM:.9,KG:.6,TJ:.6,AF:.6,FI:1.5,EE:1,LV:.9,LT:.9,BY:.6,UA:.5,MD:.4,RO:.7,SK:.9,SI:1.1,RU:1,PT:.95,IS:1.6,FO:1.6,SH:1.4,PK:.6,IN:.5,NP:.5,BD:.5,LK:.8,MM:.5,TH:.8,LA:.5,KH:.5,VN:.5,BT:.8,CN:.6,HK:1.6,MO:1.5,TW:1.1,MN:.5,ID:.4,PH:.6,MY:.8,SG:1.5,BN:1.1,TL:.7,KP:1,KR:1.3,JP:1.6,PG:1.1,AU:1.8,NZ:1.8,FJ:.8,WS:.8,TO:.8,VU:.8,NC:1.5,SB:.9,TV:1.2,NR:1.5,PW:1.4,MH:1.2,FM:1.1,KI:1,US:2,CA:1.6,MX:1.2,GT:.8,BZ:1.6,HN:.7,SV:.8,NI:.6,CR:1.6,PA:1.2,CO:.8,VE:.6,EC:.7,PE:.7,BO:.6,BR:1,PY:.6,UY:1.4,AR:.9,CL:1.4,GY:1,SR:1,CU:.5,JM:.8,HT:.4,DO:.8,BS:2,TT:1.4,BB:1.8};
 var N={};
 function loadWorld(str){N={};str.split(";").forEach(function(s){var p=s.split("|"),f=p[5];N[p[0]]={n:p[1],la:+p[2],lo:+p[3],c:p[4],r:f.indexOf("r")>-1,a:f.indexOf("a")>-1,p:f.indexOf("p")>-1,h:f.indexOf("h")>-1,l:f.indexOf("l")>-1,s:+(f.match(/\d/)||[1])[0]}});ids=Object.keys(N);towns=ids.filter(function(i){return!N[i].l});E=[];ADJ={};seen={};buildLinks()}
 var MODE={tube:"metro",bus:"bus",coach:"coach",rail:"train",hsr:"fast train",ferry:"ferry",air:"flight",shared:"shared minibus"},GRP={rail:"Trains",hsr:"Fast trains",coach:"Coaches",bus:"Buses",ferry:"Ferries",air:"Flights",tube:"Metro",shared:"Shared transport"},ORD=["rail","hsr","coach","bus","shared","ferry","air","tube"];
-var CARDS={rail:["Rail pass","Train and fast-train fares cost 30% less.",1],prio:["Priority boarding","Ferries and flights take 0.8 h less.",1],fixer:["Local fixer","Cancels your next bad event.",1],guide:["Local guide","Shows every onward option from here, free.",0],purse:["Winnings at cards","Gain \u00a340 now.",0]};
 
 function hav(a,b){var A=N[a],B=N[b],r=Math.PI/180,x=(B.lo-A.lo)*r*Math.cos((A.la+B.la)/2*r),y=(B.la-A.la)*r;return Math.sqrt(x*x+y*y)*6371}
 function arrow(a,b){if(a==b)return"\u2713";var A=N[a],B=N[b],r=Math.PI/180,x=(B.lo-A.lo)*Math.cos((A.la+B.la)/2*r),y=B.la-A.la,i=Math.round(((Math.atan2(x,y)/r+360)%360)/45)%8;return["\u2191 N","\u2197 NE","\u2192 E","\u2198 SE","\u2193 S","\u2199 SW","\u2190 W","\u2196 NW"][i]}
@@ -53,12 +52,9 @@ function buildLinks(){
  CROSSINGS.split("|").forEach(function(s){var p=s.split(" ");mk(p[0],p[1],p[2],p[2]=="ferry"?0:1,+p[3],+p[4],p[5]?+p[5]:-1,p[6]?+p[6]:0)})
 }
 
-function has(k){return S.cards.indexOf(k)>-1}
 function opts(all){
  return(ADJ[S.loc]||[]).filter(function(j){return(S.air||E[j].m!="air")&&(all||grp(E[j].m)==S.term)}).map(function(j){
   var e=E[j],h=e.h,c=e.c;
-  if((e.m=="rail"||e.m=="hsr")&&has("rail"))c=Math.round(c*.7);
-  if((e.m=="ferry"||e.m=="air")&&has("prio"))h=Math.max(.5,Math.round((h-.8)*10)/10);
   return{to:e.a==S.loc?e.b:e.a,m:e.m,h:h,c:c,lg:e.lg,dp:e.dp,ev:e.ev}})
 }
 // Choose which long-distance links to show at this stop: toward, sideways, a diversion, and red herrings, with a spread of departure times.
@@ -111,8 +107,8 @@ function nextDep(o,from,t){if(o.dp!=null){var evd=o.ev||1,pd=hsh(from+o.to)%evd,
 // Local names for shared vehicles, by the country of departure (generic where not listed)
 var SHARED_NAME={M:"grand taxi",V:"dolmuş",K:"kombi",Y:"marshrutka",Q:"taxi brousse",Z:"car rapide",W:"matatu",A:"daladala",I:"danfo",P:"trotro",X:"minibus",J:"microbus",L:"shared taxi",O:"bush taxi",a:"matatu",b:"minibus",c:"bush taxi",d:"taxi",e:"minibus",f:"minibus",g:"kombi",h:"minibus",i:"chapa",j:"minibus taxi",k:"combi",l:"combi",m:"candongueiro",n:"gbaka",o:"taxi brousse",p:"wewe",q:"taxi brousse",r:"taxi brousse",s:"poda-poda",t:"taxi",u:"minibus",v:"toca-toca",w:"taxi",x:"taxi",y:"taxi",z:"taxi",CV:"aluguer",ST:"taxi",KM:"taxi-brousse",MG:"taxi-be",MU:"bus",SC:"taxi",GE:"marshrutka",AM:"marshrutka",AZ:"marshrutka",JO:"service",IL:"sherut",LB:"service",SY:"service",PS:"service",IQ:"taxi",IR:"service",SA:"taxi",AE:"taxi",QA:"taxi",BH:"taxi",KW:"taxi",OM:"taxi",YE:"service",KZ:"marshrutka",UZ:"marshrutka",TM:"taxi",KG:"marshrutka",TJ:"marshrutka",AF:"service",FI:"taxi",EE:"minibus",LV:"marshrutka",LT:"marshrutka",BY:"marshrutka",UA:"marshrutka",MD:"marshrutka",RO:"maxi-taxi",SK:"minibus",SI:"minibus",RU:"marshrutka",PT:"taxi",IS:"taxi",FO:"taxi",SH:"taxi",PK:"qingqi",IN:"shared jeep",NP:"micro",BD:"CNG",LK:"tuk-tuk",MM:"minibus",TH:"songthaew",LA:"minibus",KH:"minibus",VN:"xe khach",BT:"taxi",CN:"minibus",HK:"minibus",MO:"taxi",TW:"taxi",MN:"taxi",ID:"angkot",PH:"jeepney",MY:"minibus",SG:"bus",BN:"bus",TL:"minibus",KP:"bus",KR:"bus",JP:"bus",PG:"PMV",AU:"bus",NZ:"bus",FJ:"bus",WS:"bus",TO:"bus",VU:"bus",NC:"bus",SB:"bus",TV:"bus",NR:"bus",PW:"bus",MH:"bus",FM:"bus",KI:"bus",US:"bus",CA:"bus",MX:"combi",GT:"microbus",BZ:"bus",HN:"rapidito",SV:"microbus",NI:"chapa",CR:"bus",PA:"bus",CO:"colectivo",VE:"por puestos",EC:"buseta",PE:"combi",BO:"micro",BR:"onibus",PY:"bus",UY:"bus",AR:"colectivo",CL:"micro",GY:"minibus",SR:"minibus",CU:"almendron",JM:"route taxi",HT:"tap-tap",DO:"concho",BS:"jitney",TT:"maxi taxi",BB:"minibus"};
 function sharedName(from){return SHARED_NAME[N[from]&&N[from].c]||"shared minibus"}
-// A wait is an overnight if it lasts more than 4 hours and covers any part of the night (22:00 to 06:00 on the clock)
-function spansNight(t,d){if(d-t<=4)return false;for(var k=Math.floor((t-22)/24);k*24+14<d;k++){if(k*24+22>t)return true}return false}
+// A wait is an overnight if it lasts more than 4 hours and is still going at 3 am on the clock: evening services will have left, and morning ones have not started
+function spansNight(t,d){if(d-t<=4)return false;for(var k=Math.floor((t-19)/24);k*24+19<d;k++){if(k*24+19>t)return true}return false}
 function sched(o,from,t){
  // Shared vehicles leave when full: the wait is an estimate, seeded so it is the same for everyone
  if(o.m=="shared"){var w=0.5+hsh(from+o.to+Math.floor(t))/333;return{dep:t+w,night:0,ns:0,nn:1}}
@@ -128,7 +124,6 @@ function sched(o,from,t){
  var ws=(tod<w[0]?day*24:(day+1)*24)+w[0]-8,d2=nextDep(o,from,ws);
  return{dep:d2,night:spansNight(t,d2)?1:0,ns:0}
 }
-function tm(h){var t=Math.round(480+h*60)%1440;return pad(Math.floor(t/60))+":"+pad(t%60)}
 function stayCost(k,n){return Math.round([0,22,65][k]*IDX[N[n].c]*[0,.9,1.1,1.4][N[n].s])}
 function hpush(a,x){a.push(x);var i=a.length-1;while(i>0){var p=(i-1)>>1;if((a[p].f||a[p].w)<=(a[i].f||a[i].w))break;var t=a[p];a[p]=a[i];a[i]=t;i=p}}
 function hpop(a){var t=a[0],l=a.pop();if(a.length){a[0]=l;var i=0,n=a.length;for(;;){var c=2*i+1;if(c>=n)break;if(c+1<n&&(a[c+1].f||a[c+1].w)<(a[c].f||a[c].w))c++;if((a[i].f||a[i].w)<=(a[c].f||a[c].w))break;var u=a[i];a[i]=a[c];a[c]=u;i=c}}return t}
@@ -181,7 +176,6 @@ function drawMap(){
 var PL={on:false,pin:null,truth:null,guess:null,fn:null},PLAN_KM_PER_H=150,PLAN_MAX_H=8;
 function kmc(a,b){var r=Math.PI/180,x=(b[0]-a[0])*r*Math.cos((a[1]+b[1])/2*r),y=(b[1]-a[1])*r;return Math.sqrt(x*x+y*y)*6371}
 function planLost(km){return Math.min(PLAN_MAX_H,km/PLAN_KM_PER_H)}
-function gauss(){var u=1-Math.random(),v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
 function planMap(map){
  jvis(map,false);if(PL.on)return;PL.on=true;
  var b=new maplibregl.LngLatBounds(ll(ids[0]),ll(ids[0]));ids.forEach(function(i){b.extend(ll(i))});
@@ -210,7 +204,6 @@ function fillFlavour(){
  var key=S.goal,c=N[key].n;
  flavourFor(c).then(function(t){var cur=document.getElementById("flavour-text");if(cur&&S&&S.goal===key)cur.textContent=t},function(){var cur=document.getElementById("flavour-text");if(cur&&S&&S.goal===key)cur.textContent="An introduction isn't available right now."})
 }
-var ROUTE_FLAVOUR={};
 // One combined sentence for the journey, built from the modes on offer. No place names beyond the start and finish.
 function routeFlavourFallback(from,to,options){
  var kinds={};(options||[]).forEach(function(o){(o.modes||[]).forEach(function(m){kinds[m]=1})});
@@ -226,18 +219,6 @@ function routeFlavourFallback(from,to,options){
  var verb=pick(["you can opt for ","you could take ","you can choose "]);
  if(!slow)return"To get from "+from+" to "+to+", "+pick(["you can take ","you could travel by "])+fast+".";
  return"To get from "+from+" to "+to+", "+verb+fast+", or "+slow+"."
-}
-function routeFlavourFor(from,to,options){
- var modes={};(options||[]).forEach(function(o){(o.modes||[]).forEach(function(m){modes[m]=1})});
- var key=from+">"+to+":"+Object.keys(modes).sort().join(",");
- if(ROUTE_FLAVOUR[key])return ROUTE_FLAVOUR[key];
- var available=Object.keys(modes).map(function(m){return MODE[m]||m}).join(", ");
- var prompt="You are a warm, concise travel-game narrator. Write one evocative, useful overview (about 35 words) for a solo traveller going from "+from+" to "+to+". Broad travel styles to draw on, if useful: "+(available||"varied connections")+". Suggest contrasting possibilities such as quicker but dearer rail and slower, cheaper buses or ferries when appropriate. Do not invent exact services, fares, timetables, stops or guarantees. Do not use headings or quotes.";
- ROUTE_FLAVOUR[key]=fetch(FLAVOUR_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:FLAVOUR_MODEL,messages:[{role:"user",content:prompt}]})})
-  .then(function(r){if(!r.ok)throw new Error("status "+r.status);return r.json()})
-  .then(function(j){var t=((j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content)||"").replace(/\*\*/g,"").trim();if(!t)throw new Error("empty reply");return t})
-  .catch(function(e){console.warn("Route overview unavailable",e);return routeFlavourFallback(from,to,options)});
- return ROUTE_FLAVOUR[key]
 }
 function fillRouteFlavour(){
  var el=document.getElementById("route-flavour");if(!el||!S||S.phase!=="routes")return;
@@ -259,7 +240,7 @@ function mkSell(v,demand){return mkMoney(v)*(0.6+0.08*demand)}
 function mkClamp(v,d){var n=Math.round(Number(v));if(!isFinite(n))n=d;return Math.min(10,Math.max(1,n))}
 function mkJson(text){var t=String(text||"").trim().replace(/^```(?:json)?\s*/i,"").replace(/\s*```$/,"");try{return JSON.parse(t)}catch(e){var a=t.indexOf("{"),b=t.lastIndexOf("}");if(a>=0&&b>a){try{return JSON.parse(t.slice(a,b+1))}catch(e2){}}throw new Error("unexpected format")}}
 function mkAsk(prompt){return fetch(FLAVOUR_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:FLAVOUR_MODEL,messages:[{role:"user",content:prompt}],temperature:0.9})}).then(function(r){if(!r.ok)throw new Error("status "+r.status);return r.json()}).then(function(j){return mkJson(j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content)})}
-function mkPips(n){var h="<span style='display:inline-flex;gap:2px;vertical-align:middle'>";for(var i=1;i<=10;i++)h+="<i style='width:6px;height:9px;border-radius:2px;background:"+(i<=n?"#315b45":"#e4dccd")+";display:inline-block'></i>";return h+"</span>"}
+function mkPips(n){var h="<span class='pips'>";for(var i=1;i<=10;i++)h+="<i"+(i<=n?" class='on'":"")+"></i>";return h+"</span>"}
 function mkGbp(n){return "\u00a3"+Math.round(n).toLocaleString("en-GB")}
 function mkCity(){return N[S.goal]?N[S.goal].n:""}
 function mkDayNo(){return arrDay()+1}
@@ -343,46 +324,43 @@ function restStart(){
 function restCloseMarket(){S.camp.marketOpen=false;render()}
 function restPage(){
  var arr=arrDay(),city=mkCity();
- var tl="<div style='display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 2px'>"+
-  "<div style='border:1px solid #ddd4c4;border-radius:10px;padding:8px;text-align:center;font-size:.82rem;color:#6b7168'><b style='display:block;color:#242a24'>Arrived</b>day "+arr+"</div>"+
-  "<div style='border:1px solid #315b45;border-radius:10px;padding:8px;text-align:center;font-size:.82rem;font-weight:700'><b style='display:block'>Rest day</b>day "+(arr+1)+"</div>"+
-  "<div style='border:1px solid #ddd4c4;border-radius:10px;padding:8px;text-align:center;font-size:.82rem;color:#6b7168'><b style='display:block;color:#242a24'>Leave 8am</b>day "+(arr+2)+"</div></div>";
- var h="<div class='panel'><h2>Rest day in "+esc(city)+"</h2><p class='mute' style='margin:0 0 6px'>A free day. Visit the market to trade, explore the town, then leave at 8am.</p>"+tl+"</div>";
- h+=S.camp.marketOpen?marketHtml():"<div class='panel'><h2>Market</h2><p class='mute' style='margin:0 0 10px'>Sell what you carry and buy local goods to take on the next leg.</p><button class='btn' onclick='restVisit()'>Visit the market</button></div>";
+ var tl="<div class='tl'><div><b>Arrived</b>day "+arr+"</div><div class='now'><b>Rest day</b>day "+(arr+1)+"</div><div><b>Leave 8am</b>day "+(arr+2)+"</div></div>";
+ var h="<div class='panel'><h2>Rest day in "+esc(city)+"</h2><p class='mute mb6'>A free day. Visit the market to trade, explore the town, then leave at 8am.</p>"+tl+"</div>";
+ h+=S.camp.marketOpen?marketHtml():"<div class='panel'><h2>Market</h2><p class='mute mb10'>Sell what you carry and buy local goods to take on the next leg.</p><button class='btn' onclick='restVisit()'>Visit the market</button></div>";
  h+=thingsHtml();
- h+="<div class='panel'><button class='btn' onclick='restLeave()'>Leave for the next leg (8am, day "+(arr+2)+")</button><p class='mute' style='margin:8px 0 0'>Items you're carrying come with you. Buyers are found afresh in each town.</p></div>";
+ h+="<div class='panel'><button class='btn' onclick='restLeave()'>Leave for the next leg (8am, day "+(arr+2)+")</button><p class='mute mt8'>Items you're carrying come with you. Buyers are found afresh in each town.</p></div>";
  return h
 }
 // Market view: goods to sell first, then the stock to buy
 function marketHtml(){
  var m=mkMarket(),busy=!!m.finding,unsold=S.camp.pack.some(function(x){return!x.buyer});
  var h="<div class='panel'><h2>Goods for trade ("+S.camp.pack.length+"/"+MK_CAP+")</h2>";
- if(!S.camp.pack.length)h+="<p class='mute' style='margin:0 0 8px'>Nothing to sell yet. Buy local goods below.</p>";
+ if(!S.camp.pack.length)h+="<p class='mute mb8'>Nothing to sell yet. Buy local goods below.</p>";
  else h+=packSellHtml();
- if(unsold&&!busy)h+="<div class='row' style='margin-top:10px'><button class='btn alt' onclick='restVisit()'>Find buyers for my pack</button></div>";
+ if(unsold&&!busy)h+="<div class='row mt10'><button class='btn alt' onclick='restVisit()'>Find buyers for my pack</button></div>";
  h+="</div><div class='panel'><h2>Buy local goods</h2>";
  if(!m.stall)h+="<p class='mute'>"+(busy?"Asking around the market\u2026":"The market is closed today.")+"</p>";
  else{
   var full=S.camp.pack.length>=MK_CAP;
-  h+="<p class='mute' style='margin:0 0 8px'>"+esc(m.profile&&m.profile.character?m.profile.character:"")+"</p>";
-  h+="<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px'>"+m.stall.map(function(x,i){
+  h+="<p class='mute mb8'>"+esc(m.profile&&m.profile.character?m.profile.character:"")+"</p>";
+  h+="<div class='mgrid'>"+m.stall.map(function(x,i){
    var owned=S.camp.pack.some(function(p){return p.id===x.id}),can=!owned&&!full&&S.cash>=x.ask;
-   return"<div style='border:1px solid #ddd4c4;border-radius:10px;padding:10px;background:#fff'><b>"+esc(x.name)+"</b><div class='mute' style='font-size:.85rem'>"+esc(x.craft)+"</div><div class='mute' style='font-size:.85rem'><em>"+esc(x.origin)+"</em></div>"+
-    "<div style='font-size:.8rem;margin:4px 0'>Value <b>"+x.value+"</b> "+mkPips(x.value)+" &nbsp; Supply <b>"+x.supply+"</b> "+mkPips(x.supply)+"</div>"+
-    "<div style='display:flex;justify-content:space-between;align-items:center'><b style='color:#315b45'>"+mkGbp(x.ask)+"</b><button "+(can?"":"disabled")+" onclick='restBuyAt("+i+")'>"+(owned?"In pack":full?"Pack full":S.cash<x.ask?"Too dear":"Buy")+"</button></div></div>"
+   return"<div class='mcard'><b>"+esc(x.name)+"</b><div class='mute fine'>"+esc(x.craft)+"</div><div class='mute fine'><em>"+esc(x.origin)+"</em></div>"+
+    "<div class='mstats'>Value <b>"+x.value+"</b> "+mkPips(x.value)+" &nbsp; Supply <b>"+x.supply+"</b> "+mkPips(x.supply)+"</div>"+
+    "<div class='mrow'><b class='price'>"+mkGbp(x.ask)+"</b><button class='btn' "+(can?"":"disabled")+" onclick='restBuyAt("+i+")'>"+(owned?"In pack":full?"Pack full":S.cash<x.ask?"Too dear":"Buy")+"</button></div></div>"
   }).join("")+"</div>";
  }
- h+="<div class='row' style='margin-top:12px'><button class='btn alt' onclick='restCloseMarket()'>Close market</button></div></div>";
+ h+="<div class='row mt12'><button class='btn alt' onclick='restCloseMarket()'>Close market</button></div></div>";
  return h
 }
 // Goods in the pack, each with its buyer and offer
 function packSellHtml(){
- return "<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px'>"+S.camp.pack.map(function(x){
-  var o=restOffer(x),d=o-x.ask;
-  var buyer=x.buyer?"<div style='font-size:.84rem;background:#f7f3ea;border-radius:8px;padding:7px 8px'><b>"+esc(x.buyer.name)+"</b> ("+esc(x.buyer.type)+"): "+esc(x.buyer.line)+"<div style='margin-top:4px'>Demand here <b>"+restEffDemand(x)+"</b> "+mkPips(restEffDemand(x))+" \u00b7 savvy "+x.buyer.savvy+"/5</div></div>":"<div class='mute' style='font-size:.84rem'>No buyer found yet.</div>";
-  return"<div style='border:1px solid #ddd4c4;border-radius:10px;padding:10px;background:#fff'><b>"+esc(x.name)+"</b><div class='mute' style='font-size:.85rem'>Paid "+mkGbp(x.ask)+"</div>"+buyer+
-   "<div style='display:flex;justify-content:space-between;align-items:center;margin-top:6px'><b>Offer "+mkGbp(o)+"</b><span style='font-size:.78rem;font-weight:800;color:"+(d>=0?"#2d4a1f":"#a74436")+"'>"+(d>=0?"+":"\u2212")+mkGbp(Math.abs(d))+"</span></div>"+
-   "<button class='btn' style='margin-top:6px;width:100%' "+(x.buyer?"":"disabled")+" onclick='restSell("+x.uid+")'>Sell</button></div>"
+ return "<div class='mgrid sell'>"+S.camp.pack.map(function(x){
+  var o=restOffer(x),d=o-x.ask,dm=restEffDemand(x);
+  var buyer=x.buyer?"<div class='buyer'><b>"+esc(x.buyer.name)+"</b> ("+esc(x.buyer.type)+"): "+esc(x.buyer.line)+"<div class='mt4'>Demand here <b>"+dm+"</b> "+mkPips(dm)+" \u00b7 savvy "+x.buyer.savvy+"/5</div></div>":"<div class='mute fine'>No buyer found yet.</div>";
+  return"<div class='mcard'><b>"+esc(x.name)+"</b><div class='mute fine'>Paid "+mkGbp(x.ask)+"</div>"+buyer+
+   "<div class='mrow mt6'><b>Offer "+mkGbp(o)+"</b><span class='delta "+(d>=0?"up":"down")+"'>"+(d>=0?"+":"\u2212")+mkGbp(Math.abs(d))+"</span></div>"+
+   "<button class='btn mt6 wfull' "+(x.buyer?"":"disabled")+" onclick='restSell("+x.uid+")'>Sell</button></div>"
  }).join("")+"</div>";
 }
 // Things to do on a rest day: search links for the town
@@ -395,14 +373,14 @@ function thingsHtml(){
   ["Watch a short documentary","Films about the town and its surroundings.","https://www.google.com/search?q=short+documentary+about+"+c+"&udm=7"],
   ["Learn the town's history","Key events and places from its past.","https://www.google.com/search?q=history+of+"+c]
  ];
- return "<div class='panel'><h2>Things to do</h2>"+items.map(function(i){return"<a class='btn' href='"+i[2]+"' target='_blank' rel='noopener'>"+esc(i[0])+"</a><p class='mute' style='margin:0 0 12px;font-size:.84rem'>"+esc(i[1])+"</p>"}).join("")+"</div>";
+ return "<div class='panel'><h2>Things to do</h2>"+items.map(function(i){return"<a class='btn' href='"+i[2]+"' target='_blank' rel='noopener'>"+esc(i[0])+"</a><p class='mute note'>"+esc(i[1])+"</p>"}).join("")+"</div>";
 }
 function planIntro(){
  var n=N[S.goal].n;
  return"<div class='panel'><h2>Destination: "+esc(n)+"</h2><p class='flavour' id='flavour-text'>Loading an introduction to "+esc(n)+"…</p>"+"</div>"
 }
 function planPanelBase(){
- return"<div class='panel'>"+(S.plan?"":"<div class='guessbox'><p class='guessprompt'>Where is "+esc(N[S.goal].n)+"? Tap the map to drop a pin. The further off you are, the more time you lose working out how to get there.</p><div class='row' style='margin:0'><button class='btn' id='planguess' onclick='planGuess()'"+(PL.guess?"":" disabled")+">Lock in guess</button></div></div>")+"<div id='planres'>"+(S.plan?planResHtml():"")+"</div><div id='planfail' hidden><p class='mute'>The map couldn't load.</p><button class='btn alt' onclick='planDone(1)'>Skip planning</button></div></div>"
+ return"<div class='panel'>"+(S.plan?"":"<div class='guessbox'><p class='guessprompt'>Where is "+esc(N[S.goal].n)+"? Tap the map to drop a pin. The further off you are, the more time you lose working out how to get there.</p><div class='row m0'><button class='btn' id='planguess' onclick='planGuess()'"+(PL.guess?"":" disabled")+">Lock in guess</button></div></div>")+"<div id='planres'>"+(S.plan?planResHtml():"")+"</div><div id='planfail' hidden><p class='mute'>The map couldn't load.</p><button class='btn alt' onclick='planDone(1)'>Skip planning</button></div></div>"
 }
 function planResHtml(){var p=S.plan;return"<p>You were "+Math.round(p.km)+" km off: "+mins(p.lost)+" lost.</p><button class='btn' onclick='planDone()'>Start travelling</button>"}
 function planGuess(){
@@ -421,7 +399,6 @@ function planDone(skip){
  var p=S.plan;S.h+=p.lost;
  S.phase="routes";S.departed=0;S.opts=routeOptions(S.budget);say(p.skipped?"Planning skipped.":"Planning: "+Math.round(p.km)+" km off, "+mins(p.lost)+" lost before leaving.");render()
 }
-function planHtml(){var p=S.plan;if(!p||p.skipped)return"";return"<p class='res'><b>Planning: "+Math.round(p.km)+" km off</b><span>You lost "+mins(p.lost)+".</span></p>"}
 function routesPanel(){
  var next=departNeeded()?departChoicesHtml():"<button class='btn' onclick='beginTravel()'>Begin journey</button>";
  return"<div class='panel'><h2>Where to?</h2><p class='mute'>Your journey begins in "+esc(N[S.start].n)+" and ends in "+esc(N[S.goal].n)+".</p><p class='route-flavour' id='route-flavour' aria-live='polite'>"+esc(routeFlavourFallback(S.start=="lon"?"London":N[S.start].n,N[S.goal].n,S.opts))+"</p><p class='mute'>Target: arrive by "+stamp(S.target||0)+" to earn the £"+BONUS+" bonus. Choose individual services as you travel.</p>"+next+"</div>"
@@ -436,7 +413,7 @@ function MAPX_MODE(){return window.MAPX&&MAPX.mode?MAPX.mode():"streets"}
 function departNeeded(){return!!(S&&S.phase==="routes"&&!S.departed&&S.loc===S.start&&terms(S.loc).length>1)}
 function departChoicesHtml(){
  var b=terms(S.loc).map(function(g){return"<button class='card' onclick='chooseDepart(\""+g+"\")'><b>"+TV[g]+"</b><span>Set off from the "+TN[g]+" in "+esc(N[S.loc].n)+".</span></button>"}).join("");
- return"<h3>Choose where to set off</h3><p class='mute' style='margin:0 0 10px'>The routes available depend on your departure terminal.</p>"+b
+ return"<h3>Choose where to set off</h3><p class='mute mb10'>The routes available depend on your departure terminal.</p>"+b
 }
 function chooseDepart(g){if(!S||S.phase!=="routes")return;S.term=g;S.departed=1;S.opts=routeOptions(S.budget);S.target=targetFor(routePool(S.budget),S.opt);beginTravel()}
 function beginTravel(){
@@ -463,11 +440,7 @@ function journalPanelHtml(){
 }
 function inventoryPanelHtml(){
  var h="<div class='panel'><h2>Money &amp; inventory</h2><div class='inventory-stats'><div><small>Available</small><b>\u00a3"+Math.round(S.cash)+"</b></div><div><small>Spent this leg</small><b>\u00a3"+Math.round(S.spent)+"</b></div><div><small>Leg budget</small><b>\u00a3"+Math.round(S.budget)+"</b></div></div><p class='mute'>Campaign leg "+S.camp.legs+". You receive \u00a3"+INCOME+" at the start of each leg.</p></div>";
- h+="<div class='panel'><h2>Travel gear</h2>";
- if(S.cards&&S.cards.length)h+="<ul class='log'>"+S.cards.map(function(k){return"<li>"+esc(CARDS[k][0])+" — "+esc(CARDS[k][1])+"</li>"}).join("")+"</ul>";
- else h+="<p class='mute'>No travel items yet.</p>";
- h+="</div>";
- if(S.camp.pack&&S.camp.pack.length)h+="<div class='panel'><h2>Goods for trade ("+S.camp.pack.length+"/"+MK_CAP+")</h2><ul class='log'>"+S.camp.pack.map(function(x){return"<li>"+esc(x.name)+" (paid \u00a3"+Math.round(x.ask)+")</li>"}).join("")+"</ul></div>";
+  if(S.camp.pack&&S.camp.pack.length)h+="<div class='panel'><h2>Goods for trade ("+S.camp.pack.length+"/"+MK_CAP+")</h2><ul class='log'>"+S.camp.pack.map(function(x){return"<li>"+esc(x.name)+" (paid \u00a3"+Math.round(x.ask)+")</li>"}).join("")+"</ul></div>";
  return h
 }
 var activePanel="play",panelScrollTimer=null;
@@ -507,13 +480,6 @@ function xf(n,a,b){if(a==b)return{h:0,c:0};var s=N[n].s,k=IDX[N[n].c],air=a=="a"
 function xfer(g){if(S.over||S.phase!="move")return;var x=xf(S.loc,S.term,g);if(x.c>S.cash)return;S.h+=x.h;S.cash-=x.c;S.spent+=x.c;S.term=g;S.arr=S.h;say(clk(S.h)+": You make your way to the "+TN[g]+" in "+N[S.loc].n+" ("+x.h+" h, \u00a3"+x.c+").");render()}
 function xferHtml(){var t=terms(S.loc).filter(function(g){return g!=S.term});if(!t.length)return"";var s="<h3>Go somewhere else in "+N[S.loc].n+"</h3>";t.forEach(function(g){var x=xf(S.loc,S.term,g);s+="<button class='opt' onclick=\"xfer('"+g+"')\""+(x.c>S.cash?" disabled":"")+"><div class='to'>"+TV[g]+"</div><span>"+x.h+" h</span><span>\u00a3"+x.c+"</span></button>"});return s}
 function roll(){return 1+Math.floor(Math.random()*6)}
-function ev(r){
- if(r==1)return{h:1.5,c:0,t:"Strike or breakdown: 1.5 h lost."};
- if(r==2){var f=10+Math.floor(Math.random()*16);return{h:0,c:f,t:"Unexpected fees: \u00a3"+f+"."}}
- if(r==5)return{h:0,c:-8,t:"Fare refunded: \u00a38 back."};
- if(r==6)return{h:-.3,c:0,t:"Smooth connection: 18 minutes saved."};
- return{h:0,c:0,t:"An uneventful hop."}
-}
 // Route search only considers places in a corridor around the journey (start to goal), so the search stays fast however many places exist.
 // The player is not restricted: their own options at each stop still come from every link.
 var ACT={key:"",set:null},CORRIDOR=true,HEUR=true;
@@ -542,26 +508,24 @@ function plan(noise,B,X){X=X||{};var vt=X.vt||VT,st=X.from||S.start,gl=X.to||S.g
  }
  return null
 }
-function run(steps,events){
+function run(steps){
  var h=0,c=0,ab=0,names=[S.start],times=[0],modes=[],nights=[];
- var cur=S.start,g=S.term;steps.forEach(function(s){var e=E[s.j],g2=grp(e.m),x0=xf(cur,g,g2);h+=x0.h;c+=x0.c;var sc=sched({m:e.m,lg:e.lg,to:s.to,dp:e.dp,ev:e.ev},cur,h);if(sc.night)c+=stayCost(1,cur);var dpt=sc.dep;h=sc.dep+e.h;ab+=Math.floor((8+h)/24)-Math.floor((8+dpt)/24);c+=e.c;if(events){var x=ev(S.ev?roll():3);h+=x.h;c+=x.c;if(sc.night&&roll()<=2)h+=1}g=g2;cur=s.to;names.push(s.to);times.push(h);modes.push(e.m);nights.push(sc.night?1:0)});
+ var cur=S.start,g=S.term;steps.forEach(function(s){var e=E[s.j],g2=grp(e.m),x0=xf(cur,g,g2);h+=x0.h;c+=x0.c;var sc=sched({m:e.m,lg:e.lg,to:s.to,dp:e.dp,ev:e.ev},cur,h);if(sc.night)c+=stayCost(1,cur);var dpt=sc.dep;h=sc.dep+e.h;ab+=Math.floor((8+h)/24)-Math.floor((8+dpt)/24);c+=e.c;g=g2;cur=s.to;names.push(s.to);times.push(h);modes.push(e.m);nights.push(sc.night?1:0)});
  return{names:names,times:times,modes:modes,nights:nights,aboard:ab,h:h,c:c,score:h+c/VT}
 }
 function newJourney(a,b,air,evn,lm){
  var camp=NEXT_CAMP||{money:0,legs:1,start:0,log:[],pack:[],seed:(Math.random()*1e9)|0,sales:{},nextUid:0};NEXT_CAMP=null;
- S={legNotes:[],start:a,goal:b,air:air,ev:evn,camp:camp,setup:{air:air,evn:evn,lm:lm},lmOn:!!(lm&&lm.on),planOn:!!(lm&&lm.plan),lmClue:lm&&lm.clue,lmLevel:lm&&lm.level,rooms:[],wait:0,tired:false,pend:null,loc:a,h:0,spent:0,cards:[],path:[a],times:[0],modes:[],nights:[],rev:{},log:["Begin your journey from "+(a=="lon"?"Trafalgar Square":N[a].n)+" to "+N[b].n+"."],phase:(lm&&lm.plan)?"plan":"routes",draft:[],over:null};
+ S={legNotes:[],start:a,goal:b,air:air,ev:evn,camp:camp,setup:{air:air,evn:evn,lm:lm},lmOn:!!(lm&&lm.on),planOn:!!(lm&&lm.plan),lmClue:lm&&lm.clue,lmLevel:lm&&lm.level,rooms:[],wait:0,tired:false,pend:null,loc:a,h:0,spent:0,path:[a],times:[0],modes:[],nights:[],rev:{},log:["Begin your journey from "+(a=="lon"?"Trafalgar Square":N[a].n)+" to "+N[b].n+"."],phase:(lm&&lm.plan)?"plan":"routes",draft:[],over:null};
  S.term=terms(a)[0];S.arr=0;var B=camp.money+INCOME,p=plan(0,B),t=0;
  while(!p&&t++<4){B=Math.round(B*1.5);p=plan(0,B)}
  if(!p){S=null;return false}
- S.budget=B;S.cash=B;S.opt=run(p,false);S.opts=routeOptions(S.budget);S.target=targetFor(routePool(S.budget),S.opt);return true
+ S.budget=B;S.cash=B;S.opt=run(p);S.opts=routeOptions(S.budget);S.target=targetFor(routePool(S.budget),S.opt);return true
 }
 function load(){try{var r=localStorage.getItem(KEY);if(r){var o=JSON.parse(r);if(o&&o.loc&&o.camp&&placeOf(o.start)&&placeOf(o.goal)){if(!o.camp)o.camp={money:0,legs:1,start:0,log:[]};if(!o.setup)o.setup={air:false,evn:false,lm:{on:true,clue:"off",level:"mixed",plan:true}};S=o}}}catch(e){}}
 function save(){try{if(S)localStorage.setItem(KEY,JSON.stringify(S));else localStorage.removeItem(KEY)}catch(e){}}
 function say(t){S.log.push(t);if(S.log.length>40)S.log.shift()}
-function drop(k){var i=S.cards.indexOf(k);if(i>-1)S.cards.splice(i,1)}
 function pad(n){return(n<10?"0":"")+n}
 function absH(h){return(S&&S.camp?S.camp.start:0)+h}
-function dayAhead(dep){var da=Math.floor((8+dep)/24)-Math.floor((8+S.h)/24);return da>0?(da==1?" tomorrow":" in "+da+" days"):""}
 function clk(h){var t=480+Math.round(absH(h)*60),d=Math.floor(t/1440),m=t%1440;return"Day "+(d+1)+", "+pad(Math.floor(m/60))+":"+pad(m%60)}
 
 function go(i){
@@ -570,24 +534,90 @@ function go(i){
  if(sc.night){S.pend=i;S.rooms=mkRooms();S.phase="stay";return render()}
  hop(i,sc.dep)
 }
+// Flavour for uneventful stops: a line for the transport type, short hops (3 h or less) and long ones. {to} is the destination.
+var FLAVOUR={
+ bus:{s:["The bus rattles through market towns, and a child in the back row waves at every stop.","A conductor squeezes past with a tray of tea and a grin.","The driver takes the bends with great confidence and a loud horn.","Passengers swap snacks, and the view opens out towards {to} across the fields.","Someone's radio plays the same song twice. Nobody minds."],
+  l:["Hours on the road give you time to watch the country change outside the window.","A stop at a roadside cafe for bread, tea and a long argument about football.","The bus crawls through a market town, and everyone holds their bags a little tighter.","Night falls, and the bus settles into a steady hum as the lights of {to} come into view.","Someone shares a map and traces the route ahead to {to} with a finger on the glass."]},
+ coach:{s:["The coach glides along the motorway with the air conditioning on full.","A tannoy announces the next stop, and the driver's voice is oddly calming.","Someone opens a bag of crisps, and soon the whole back row is involved.","Service stations come and go as the signs count down the miles to {to}.","The coach pulls into {to} right on schedule, somehow."],
+  l:["The coach runs through the night, the overhead lights dimmed for those trying to sleep.","A long stop at a rest area gives time for a coffee and a stretch.","You watch a storm roll across the plain, then clear as the coach keeps on.","Mountains loom to one side as the road winds on towards {to}.","The passenger in the seat ahead teaches you a card game for the last hour."]},
+ rail:{s:["The train rattles past allotments and small stations, one wave at a time.","A trolley squeaks down the aisle, and the coffee is surprisingly good.","The line follows a river for a while, glinting in the afternoon sun.","You change seats twice to get a better view of the countryside.","The announcer says {to} in a voice that makes it sound like a destination."],
+  l:["The train crosses a long viaduct, and the whole carriage goes quiet to look down.","The dining car serves lunch on real china, and the cutlery rattles with each bend.","Your carriage fills with students, then empties again over the afternoon.","The track runs through tunnels, and every time you emerge the scenery has changed.","The sun sets behind you as the train pulls into {to}."]},
+ hsr:{s:["The fast train hushes through the countryside, barely a tremor in the cup.","Announcements flash past in two languages as the train makes its quick stops.","Your reflection hangs over the fields as the train races along.","The carriage hums quietly, and the next station is called almost before you have settled.","A glimpse of a distant skyline on the horizon, then {to}."],
+  l:["The train runs for hours at speed, the countryside sliding past in blurs.","A fellow passenger lends you a charger, and the carriage slowly falls asleep.","The dining car is busy, and somehow the coffee is still hot at full speed.","A long tunnel, then open country, with the sea glimpsed briefly to one side.","The train slows gently into {to}, almost on time."]},
+ ferry:{s:["Gulls wheel alongside as the ferry leaves the harbour.","You stand on deck with spray on your face and the coast shrinking behind you.","Sunlight dances on the water, and a fishing boat waves as you pass.","A crew member points out a dolphin, and everyone crowds to the rail.","The ferry noses into the harbour at {to}, and the ramp comes down."],
+  l:["The ferry rolls gently through the night, and the lounge fills with snoring travellers.","A long afternoon on deck, the coast slowly becoming a thin line on the horizon.","The cafeteria runs out of chips, and a crew member finds a spare packet.","Cargo ships pass in the distance, and the ferry turns for the approach to {to}.","At dawn the ferry reaches {to}, with the sun rising over the harbour walls."]},
+ air:{s:["The plane climbs above the clouds, and the cabin settles into a steady drone.","The captain announces a smooth descent, and the view of {to} is spectacular.","A small snack and a film you will forget by the time you land.","The window seat reveals a river snaking across the land below.","The cabin lights go down, and most of the plane falls asleep."],
+  l:["A long flight over open water, with little to see but cloud and the odd blinking light.","The sun follows you across the sky as the plane flies on.","Turbulence rattles the cups for a minute, then everything smooths out again.","You land at dusk, and the lights of {to} spread out beneath the wing.","The flight crosses a mountain range at dawn, glowing gold in the first light."]},
+ tube:{s:["The carriage is packed, then thins out as you reach the outer stations.","Someone reads a paperback with the spine broken in three places.","A busker's melody drifts through the tunnel as the train pulls away.","A stranger in the next seat is doing the crossword, and it is nearly finished.","The doors open at {to}, and the platform smells of coffee and rain."],
+  l:["A long ride across the city, with the station names rolling past in a blur.","A street musician plays on the platform for the whole journey.","The train emerges from underground, and the city spreads out in the evening light."]},
+ shared:{s:["The minibus fills up, and the driver whistles along to the radio.","A goat wanders onto the road, and everyone waits patiently.","The driver chats about football, the price of rice and the road to {to}.","Windows down, and the smell of charcoal from the roadside stalls drifts in.","The minibus rolls into {to} with a cheery toot of its horn."],
+  l:["The shared minibus is full of stories, and the driver knows every shortcut.","A stop at a village market, with fresh fruit handed up through the window.","Passengers share a bag of oranges and an argument about the best route to {to}.","The road climbs into the hills, and the minibus takes the bends with a good deal of roar.","As night falls, the driver switches on a single bulb and carries on."]}
+};
+var FLAV_TITLES=["On the road","Smooth going","Good journey","All aboard"];
+function travelFlavour(o){var p=FLAVOUR[o.m]||FLAVOUR.bus,pool=o.h<=3?p.s:p.l,line=pool[Math.floor(Math.random()*pool.length)];return{title:FLAV_TITLES[Math.floor(Math.random()*FLAV_TITLES.length)],t:line.replace(/\{to\}/g,N[o.to]?N[o.to].n:"the next stop")}}
+// Slight delays and quicker runs, per mode
+var SLIGHT={bus:["A queue at a level crossing holds the bus up for a while.","The bus stops twice while bags are loaded onto the roof."],coach:["A lorry shedding its load slows the coach for a few miles.","The coach waits at a barrier while the road is checked."],rail:["A signal check holds the train at a junction for a few minutes.","The train waits at a station for a late connection from another line."],hsr:["A speed restriction on the line means the train eases off for a while.","The train holds at a junction while a freight train clears the track."],ferry:["The ferry lingers at the quay while a late vehicle is loaded.","Choppy water means a slower approach to the harbour."],air:["The flight waits on the taxiway for a busy runway slot.","A short holding pattern over the city before landing."],tube:["A signal failure means a short wait between stations.","The train is held in a tunnel while the line is cleared."],shared:["The minibus stops at a market for produce to be loaded.","The driver takes a detour round a flooded dip in the road."]};
+var SAVED=["The connection was waiting, so you were away a little sooner.","The driver found a clear road and made up some time.","Everything lined up, and the crossing went faster than planned."];
+// Travel events, per mode. One d6 per hop: 1 breakdown or failure (+20% of the hop's time), 2 bad weather (+10%), 3 to 5 nothing, 6 a papers problem (fee of 50% of the fare, or +10% time on a free hop)
+function eventFor(o,r){
+ var m=o.m,name=(m=="shared"?"minibus":(MODE[m]||"vehicle")).toLowerCase();
+ // Shared minibuses break down on a 2 as well as a 1
+ if(r==1||(m=="shared"&&r==2)){var d=o.h*0.2,air=m=="air",ferry=m=="ferry";
+  return{kind:"hazard",h:d,c:0,title:ferry?"Mechanical failure":air?"Technical fault":"Breakdown",label:"Breakdown",
+   t:"The "+name+" "+(ferry?"suffers a mechanical failure":air?"suffers a technical fault":"breaks down")+": +"+mins(d)+"."}}
+ if(r==2){var w=o.h*0.1;
+  return{kind:"hazard",h:w,c:0,title:"Bad weather",label:"Bad weather",t:(m=="ferry"?"Rough seas slow the crossing":"Bad weather slows the journey")+": +"+mins(w)+"."}}
+ if(r==3){var fee=Math.round(o.c*0.5);
+  if(fee>0)return{kind:"hazard",h:0,c:fee,title:"Problem with your papers",label:"Papers",t:"Problem with your papers: a fee of \u00a3"+fee+"."};
+  var dl=o.h*0.1;return{kind:"hazard",h:dl,c:0,title:"Problem with your papers",label:"Papers",t:"Problem with your papers: +"+mins(dl)+" (no fare to take a fee from)."}}
+ if(r>=4&&r<=6){var sd=o.h*(r==4?0.03:0.05),pool=SLIGHT[m]||SLIGHT.bus;
+  return{kind:"slight",h:sd,c:0,title:"Slight delay",label:"Slight delay",t:pool[Math.floor(Math.random()*pool.length)]+" +"+mins(sd)+"."}}
+ if(r==7){var sv=o.h*0.05;
+  return{kind:"saving",h:-sv,c:0,title:"Quicker than planned",label:"Quicker",t:SAVED[Math.floor(Math.random()*SAVED.length)]+" "+mins(sv)+" saved."}}
+ var fl=travelFlavour(o);return{kind:"none",h:0,c:0,title:fl.title,label:fl.title,t:fl.t};
+}
+// Overlay layer on the body, so it survives re-renders of the game
+function evLayer(html){var el=document.createElement("div");el.className="evlayer";el.innerHTML=html;document.body.appendChild(el);return el}
+function vehicleName(m){return m=="shared"?"minibus":(MODE[m]||"vehicle")}
+// The result stage: the die stays on its roll, with the outcome beneath it
+function resultStage(el,x,resume){
+ el.querySelector(".evbox").innerHTML="<h3>"+esc(x.title)+"</h3><p>"+esc(x.t)+"</p><button class='btn'>Continue</button>";
+ el.querySelector("button").onclick=function(){el.remove();resume()};
+}
+// Shown once the route is half way: the question, a second's roll, then the result
+function travelSequence(o,r,x,resume){
+ var el=evLayer("<div class='evbox evcard'><h3>The "+vehicleName(o.m)+" makes its way to "+esc(N[o.to].n)+".</h3><p>Will everything run smoothly?</p></div>");
+ setTimeout(function(){resultStage(el,x,resume)},1500);
+}
+// Draws the leg: the route runs, pauses half way for the dice when events are on, then calls done
+function hopAnimate(from,to,o,r,x,done){
+ if(reduceMotion()){MJ.anim=null;if(r==null){setTimeout(done,0);return}var el=evLayer("<div class='evbox evcard'></div>");resultStage(el,x,done);return}
+ var A={from:from,to:to,p:0,dur:1200,last:null,pauseAt:r==null?null:0.5,started:false,paused:false,done:done,
+  onPause:function(resume){travelSequence(o,r,x,resume)}};
+ MJ.anim=A;
+ setTimeout(function(){if(MJ.anim===A&&!A.started){A.started=true;A.last=null;animRoute()}},0);
+}
+// Applies the leg's outcome once the player has seen the roll
+function settleHop(o,x){
+ S.h=Math.max(0,S.h+x.h);S.cash=Math.max(0,S.cash-x.c);S.spent+=x.c;
+ if(x.kind!="none")S.legNotes.push(x.t);
+ say(clk(S.h)+": "+(o.m=="shared"?sharedName(S.loc):MODE[o.m])+" to "+N[o.to].n+" ("+o.h+" h, \u00a3"+o.c+"). "+x.t);
+ if(S.loc==S.goal){S.arrH=S.h;arrivalPrefetch();S.phase="arrive";return render()}
+ S.arr=S.h;S.term=grp(o.m);
+ if(opts(1).every(function(p){return p.c>S.cash}))S.over="broke";
+ render();
+}
 function hop(i,dep){
+ if(MJ.anim)return;
  var o=opts()[i];if(!o||o.c>S.cash){S.phase="move";S.pend=null;return render()}
  var from=S.loc;
  var tr=S.tired?1:0;S.tired=false;S.pend=null;S.phase="move";
  if(tr){say("Tired after a poor night: 1 h lost.");S.legNotes.push("Tired after a poor night: 1 h lost.")}
  S.h=dep+o.h+tr;S.cash-=o.c;S.spent+=o.c;S.loc=o.to;S.path.push(o.to);S.modes.push(o.m);
- if(!reduceMotion()){MJ.anim={from:from,to:o.to,t0:performance.now(),dur:1400};animRoute()}(S.times=S.times||[0]).push(S.h);S.nights.push(S.slept?1:0);S.slept=0;
- var x=S.ev?ev(roll()):ev(3),t=x.t;
- if(x.c>0||x.h>0){if(has("fixer")){drop("fixer");x={h:0,c:0};t="Your fixer smooths over the trouble."}}
- S.h=Math.max(0,S.h+x.h);S.cash=Math.max(0,S.cash-x.c);S.spent+=x.c;
- if(t!="An uneventful hop.")S.legNotes.push(t);
- say(clk(S.h)+": "+(o.m=="shared"?sharedName(S.loc):MODE[o.m])+" to "+N[o.to].n+" ("+o.h+" h, \u00a3"+o.c+"). "+t);
- if(S.loc==S.goal){S.arrH=S.h;arrivalPrefetch();S.phase="arrive";return render()}
- S.arr=S.h;S.term=grp(o.m);
- if(!S.ev){S.draft=[];pick(null);return}
- var pool=Object.keys(CARDS).filter(function(k){return!(CARDS[k][2]&&has(k))});
- pool.sort(function(){return Math.random()-.5});
- S.draft=pool.slice(0,3);S.phase="draft";render()
+ (S.times=S.times||[0]).push(S.h);S.nights.push(S.slept?1:0);S.slept=0;
+ var r=S.ev?roll():null,x=eventFor(o,r||3);
+ hopAnimate(from,o.to,o,r,x,function(){settleHop(o,x)});
+ render();
 }
 function stay(k){
  var i=S.pend,o=opts()[i],rm=k<0?{n:"the station",c:0,q:2}:S.rooms[k],c=rm.c,sc=sched(o,S.loc,S.h);
@@ -598,14 +628,6 @@ function stay(k){
  S.slept=1;hop(i,sc.dep)
 }
 function look(){S.h+=.3;S.rev[S.loc+S.term]=1;say(clk(S.h)+": You ask around and check timetables at "+N[S.loc].n+".");render()}
-function pick(k){
- if(k){
-  if(k=="purse")S.cash+=40;else if(k=="guide")S.rev[S.loc+S.term]=1;else S.cards.push(k);
-  say("Picked up: "+CARDS[k][0]+".")}
- S.draft=[];S.phase="move";
- if(opts(1).every(function(o){return o.c>S.cash}))S.over="broke";
- render()
-}
 // Campaign: each new leg gives a fixed income on top of any money carried over from the last leg. Tune here.
 var INCOME=350,BONUS=150,PLAN_ALLOW=1.5,LM_ALLOW=1.5,NEXT_CAMP=null;
 // Target: the median of the reasonable routes plus a planning allowance. Arriving by then earns BONUS on top of INCOME.
@@ -657,7 +679,6 @@ function targetFor(pool,fallback){
 function bandFor(region){var b=DISTANCE_BANDS[region]||DISTANCE_BANDS["default"];return b}
 // Region a place belongs to, whether or not that region is loaded
 function regionOf(id){var g=gazetteer().filter(function(x){return x.id==id})[0];return g?g.region:null}
-function isCity(i){return!N[i].l&&(N[i].s>=2||EXTRA_CITIES.indexOf(i)>-1)}
 // Destination candidates come from the gazetteer, so a city can be chosen even when its region is not loaded.
 // Places are kept in the same order as the place list, so the same seed gives the same destination.
 var GZ=null;
@@ -762,17 +783,17 @@ function testPickerHtml(){
  var opts=function(sel){return Object.keys(byRegion).sort().map(function(reg){
   return "<optgroup label='"+esc(reg)+"'>"+byRegion[reg].sort(function(a,b){return a.name<b.name?-1:1}).map(function(c){return "<option value='"+c.id+"'"+(c.id===sel?" selected":"")+">"+esc(c.name)+"</option>"}).join("")+"</optgroup>"
  }).join("")};
- return "<details style='margin-top:14px'><summary class='mute'>Testing: choose a start and destination</summary>"+
-  "<div class='row' style='margin-top:10px'><label class='mute' style='flex:1;min-width:140px'>From<select id='testFrom' style='width:100%'>"+opts("lon")+"</select></label>"+
-  "<label class='mute' style='flex:1;min-width:140px'>To<select id='testTo' style='width:100%'>"+opts("rom")+"</select></label></div>"+
-  "<div class='row' style='margin-top:10px'><button class='secondary' onclick='beginTestPick()'>Start this journey</button></div></details>"
+ return "<details class='mt14'><summary class='mute'>Testing: choose a start and destination</summary>"+
+  "<div class='row mt10'><label class='mute tfield'>From<select id='testFrom'>"+opts("lon")+"</select></label>"+
+  "<label class='mute tfield'>To<select id='testTo'>"+opts("rom")+"</select></label></div>"+
+  "<div class='row mt10'><button class='secondary' onclick='beginTestPick()'>Start this journey</button></div></details>"
 }
 function beginTestPick(){beginTo(document.getElementById('testFrom').value,document.getElementById('testTo').value)}
 function beginTo(from,to){
  if(!from||!to||from===to){S=null;return render("Choose two different places.")}
  activePanel="play";
  var lm={on:true,clue:"off",level:"mixed",plan:true};
- return startJourney(from,to,false,false,lm).then(function(ok){if(ok)return render();S=null;return render("No route found between those places.")},function(err){S=null;return render("Could not load the map: "+(err&&err.message||err))})
+ return startJourney(from,to,false,true,lm).then(function(ok){if(ok)return render();S=null;return render("No route found between those places.")},function(err){S=null;return render("Could not load the map: "+(err&&err.message||err))})
 }
 // Draw a start hub by weight from START_HUBS (config.js)
 function pickHub(){var t=0;START_HUBS.forEach(function(h){t+=h.w});var r=Math.random()*t;for(var i=0;i<START_HUBS.length;i++){r-=START_HUBS[i].w;if(r<0)return START_HUBS[i].id}return START_HUBS[0].id}
@@ -781,7 +802,7 @@ function begin(){
  var fail=function(err){if(err)console.warn(err);S=null;return render(err&&err.message?"Could not load the map: "+err.message+". Check that every file in data/regions/ is in place.":"Couldn't find a route. Try again.")};
  var tryOne=function(){
   if(!to)return fail();
-  return startJourney(from,to,false,false,lm).then(function(ok){if(ok)return render();if(tries++<8){from=pickHub();to=pickDest(from);return tryOne()}return fail()},fail)
+  return startJourney(from,to,false,true,lm).then(function(ok){if(ok)return render();if(tries++<8){from=pickHub();to=pickDest(from);return tryOne()}return fail()},fail)
  };
  return tryOne()
 }
@@ -792,12 +813,20 @@ function restHtml(){return"<p class='mute'>Arrived "+stamp(S.arrH||0)+". Rest an
 function campLogHtml(){var l=(S.camp&&S.camp.log)||[];if(!l.length)return"";return"<div class='panel'><h2>Campaign so far</h2><ol class='log'>"+l.map(function(e){return"<li>Leg "+e.leg+": "+esc(e.to)+", arrived "+e.arrived+"</li>"}).join("")+"</ol></div>"}
 function nextLeg(){
  if(!S||!S.camp)return;
- var from=S.goal,dirs=((S.camp.dirs||[]).concat([unitVec(S.start,S.goal)])).slice(-HEAD_LEGS),to=pickDest(from,dirs);
- if(!to){S=null;return render("No destination found. Start a new journey.")}
+ var from=S.goal,dirs=((S.camp.dirs||[]).concat([unitVec(S.start,S.goal)])).slice(-HEAD_LEGS);
  var log=(S.camp.log||[]).concat([{leg:S.camp.legs,to:N[S.goal].n,arrived:stamp(S.arrH||0)}]),start=(arrDay()+1)*24;
- NEXT_CAMP={money:Math.max(0,S.cash),legs:S.camp.legs+1,start:start,log:log,dirs:dirs,paid:S.camp.paid||[],pack:(S.camp.pack||[]).map(function(x){return Object.assign({},x,{buyer:null})}),seed:S.camp.seed,sales:S.camp.sales||{},nextUid:S.camp.nextUid||0};
- var st=S.setup||{air:false,evn:false,lm:{on:true,clue:"off",level:"mixed",plan:true}};
- startJourney(from,to,st.air,st.evn,st.lm,NEXT_CAMP).then(function(ok){if(!ok){S=null;return render("Couldn't find a route. Start a new journey.")}render()},function(err){S=null;render("Could not load the map: "+(err&&err.message||err))})
+ var camp={money:Math.max(0,S.cash),legs:S.camp.legs+1,start:start,log:log,dirs:dirs,paid:S.camp.paid||[],pack:(S.camp.pack||[]).map(function(x){return Object.assign({},x,{buyer:null})}),seed:S.camp.seed,sales:S.camp.sales||{},nextUid:S.camp.nextUid||0};
+ var st=S.setup||{air:false,evn:true,lm:{on:true,clue:"off",level:"mixed",plan:true}},tries=0;
+ var attempt=function(){
+  var to=pickDest(from,dirs);
+  if(!to){S=null;return render("No destination found. Start a new journey.")}
+  return startJourney(from,to,st.air,st.evn,st.lm,camp).then(function(ok){
+   if(ok)return render();
+   if(tries++<8)return attempt();
+   S=null;return render("Couldn't find a route from "+N[from].n+". Start a new journey.");
+  },function(err){S=null;render("Could not load the map: "+(err&&err.message||err))});
+ };
+ return attempt();
 }
 function reset(){LM.reset();S=null;activePanel="play";render()}
 
@@ -821,15 +850,23 @@ function gcPoint(a,b,f){
 }
 // The journey so far, plus the new leg drawn part of the way along
 function animLine(){
- var A=MJ.anim,f=Math.min(1,(performance.now()-A.t0)/A.dur),e=1-Math.pow(1-f,3),n=Math.max(2,Math.ceil(48*e)),pts=S.path.slice(0,-1).map(ll);
+ var A=MJ.anim,e=1-Math.pow(1-A.p,3),n=Math.max(2,Math.ceil(48*e)),pts=S.path.slice(0,-1).map(ll);
  for(var i=0;i<=n;i++)pts.push(gcPoint(ll(A.from),ll(A.to),e*i/n));
  return lnf(pts);
 }
+function drawRoute(){var m=MJ.cur;if(m){var src=m.getSource&&m.getSource("j-me");if(src)src.setData(animLine())}}
 function animRoute(){
- var A=MJ.anim;if(!A)return;var m=MJ.cur;
- if(m){var src=m.getSource&&m.getSource("j-me");if(src)src.setData(animLine())}
- if(performance.now()-A.t0<A.dur)requestAnimationFrame(animRoute);
- else{MJ.anim=null;if(m)updateJourney(m)}
+ var A=MJ.anim;if(!A||A.paused)return;
+ var now=performance.now();if(A.last==null)A.last=now;
+ A.p=Math.min(1,A.p+(now-A.last)/A.dur);A.last=now;
+ if(A.pauseAt!=null&&A.p>=A.pauseAt){
+  A.p=A.pauseAt;A.pauseAt=null;A.paused=true;drawRoute();
+  A.onPause(function(){A.paused=false;A.last=null;animRoute()});
+  return
+ }
+ drawRoute();
+ if(A.p<1)requestAnimationFrame(animRoute);
+ else{MJ.anim=null;var m=MJ.cur;if(m)updateJourney(m);if(A.done)A.done()}
 }
 function arrivalPrefetch(){
  var g=N[S.goal];
@@ -853,7 +890,7 @@ function arriveHtml(){
  var lines=[slept?"You are tired after a poor night.":"You arrive rested."];
  if(nights)lines.push("You spent "+nights+(nights==1?" night":" nights")+" on the road.");
  var h="<div class='panel arrive'><p class='kicker'>Arrived "+esc(clk(S.h))+"</p><h2 class='arrive-h'>Welcome to "+esc(g)+"</h2><p class='big'>"+status+"</p>";
- if(S.lmOn)h+="<p>You now need to find the checkpoint in "+esc(g)+". Your time may still change there.</p>";
+ if(S.lmOn)h+="<p>You now need to find the checkpoint in "+esc(g)+".</p>";
  h+="<p>"+lines.join(" ")+"</p>";
  if(notes.length)h+="<h3>On the way</h3><ul class='log'>"+notes.map(function(t){return"<li>"+esc(t)+"</li>"}).join("")+"</ul>";
  h+="<button class='btn' onclick='arriveContinue()'>"+(S.lmOn?"Continue to Checkpoint":"Continue")+"</button></div>";
@@ -861,7 +898,7 @@ function arriveHtml(){
 }
 function arriveContinue(){
  if(S.phase!=="arrive")return;
- if(S.lmOn){S.phase="lastmile";S.draft=[];startLM();return render()}
+ if(S.lmOn){S.phase="lastmile";startLM();return render()}
  settleBonus();S.over="done";S.phase="move";render();
 }
 function startLM(){MJ.resetView=true;
@@ -870,7 +907,6 @@ function startLM(){MJ.resetView=true;
   LM.reset();S.lm=r;S.h+=r.lost;S.arrH=S.h;settleBonus();S.over="done";S.phase="move";
   say(clk(S.h)+": Checkpoint: "+(r.skipped?"skipped.":r.title+", "+r.distText+" off, "+mins(r.lost)+" lost."));render()})
 }
-function lmHtml(){var r=S.lm;if(!r)return"";return"<p class='res'><b>Checkpoint: "+(r.skipped?"skipped":esc(r.title)+" ("+r.distText+" off)")+"</b><span>You lost "+mins(r.lost)+".</span></p>"}
 // Stranded: nothing at this stop can be paid for, including a cheaper change of terminal
 function stranded(){
  if(!S||S.over||S.phase!=="move")return false;
@@ -944,13 +980,8 @@ function render(msg){
   h+="<div class='panel'><p class='big'>"+m+"</p><p class='mute'>Leg "+S.camp.legs+" complete. You carry \u00a3"+Math.max(0,Math.round(S.cash))+" into the next leg"+(S.bonus?", including the \u00a3"+BONUS+" on-time bonus":"")+". A further \u00a3"+INCOME+" income is paid at the start of the next leg, when you set off at 8am on Day "+(arrDay()+2)+".</p>"+restHtml()+"<div class='row'><button class='btn' onclick='restStart()'>Rest day</button></div></div>"
  }else{
 
-  if(S.cards.length)h+="<p class='hand'>Carrying: "+S.cards.map(function(k){return CARDS[k][0]}).join(", ")+"</p>";
   if(S.phase=="lastmile"||S.phase=="interim")h+="<div class='panel'><h2>"+(S.phase=="interim"?"Checkpoint work":"Checkpoint")+"</h2><div id='lm'></div></div>";else if(S.phase=="plan")h+=planPanel();else if(S.phase=="routes")h+=routesPanel();
-  if(S.phase=="lastmile"||S.phase=="interim"||S.phase=="plan"||S.phase=="routes"){}else if(S.phase=="arrive"){h+=arriveHtml();}else if(S.phase=="stay"){var po=opts()[S.pend],ss=sched(po,S.loc,S.h);h+="<div class='panel'><h2>No service until "+clk(ss.dep)+"</h2><p style='margin:0 0 10px'>Where will you sleep in "+N[S.loc].n+"?</p>";S.rooms.forEach(function(x,k){h+="<button class='card' onclick='stay("+k+")'"+(x.c>S.cash?" disabled":"")+"><b>"+x.n+", \u00a3"+x.c+"</b><span>"+(x.q?"A proper night's rest.":"Cheap, but you may sleep badly.")+"</span></button>"});h+="<button class='card' onclick='stay(-1)'><b>Spend the night at the station</b><span>Free, but you will be tired: 1 h lost on the next leg.</span></button>";if(!S.rooms.length)h+="<p style='margin:0 0 10px'>No rooms are free in town tonight.</p>";h+="<button class='link' onclick='S.phase=\"move\";S.pend=null;render()'>Choose a different option</button></div>"}else if(S.phase=="draft"){
-   h+="<div class='panel'><h2>Pick one to take with you</h2>";
-   S.draft.forEach(function(k){h+="<button class='card' onclick=\"pick('"+k+"')\"><b>"+CARDS[k][0]+"</b><span>"+CARDS[k][1]+"</span></button>"});
-   h+="<button class='link' onclick='pick(null)'>Skip</button></div>"
-  }else{
+  if(S.phase=="lastmile"||S.phase=="interim"||S.phase=="plan"||S.phase=="routes"){}else if(S.phase=="arrive"){h+=arriveHtml();}else if(S.phase=="stay"){var po=opts()[S.pend],ss=sched(po,S.loc,S.h);h+="<div class='panel'><h2>No service until "+clk(ss.dep)+"</h2><p class='mb10'>Where will you sleep in "+N[S.loc].n+"?</p>";S.rooms.forEach(function(x,k){h+="<button class='card' onclick='stay("+k+")'"+(x.c>S.cash?" disabled":"")+"><b>"+x.n+", \u00a3"+x.c+"</b><span>"+(x.q?"A proper night's rest.":"Cheap, but you may sleep badly.")+"</span></button>"});h+="<button class='card' onclick='stay(-1)'><b>Spend the night at the station</b><span>Free, but you will be tired: 1 h lost on the next leg.</span></button>";if(!S.rooms.length)h+="<p class='mb10'>No rooms are free in town tonight.</p>";h+="<button class='link' onclick='S.phase=\"move\";S.pend=null;render()'>Choose a different option</button></div>"}else{
    var all=opts(),v=vis(),last="";
    h+="<div class='panel'><h2>Where next?</h2>"+(canInterim()?"<button class='card' onclick='interimLM()'><b>"+(needsEmergencyWork()?"Earn money for the next fare":"Stop for checkpoint work")+"</b><span>Spend 2 hours on a photo challenge in "+esc(N[S.loc].n)+" and earn £"+PAY_MIN+" to £"+PAY_MAX+".</span></button>":"");
    v.show.sort(function(a,b){var x=ORD.indexOf(all[a].m)-ORD.indexOf(all[b].m);return x||all[a].h-all[b].h});
