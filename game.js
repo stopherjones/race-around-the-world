@@ -665,7 +665,7 @@ function begin(){
 function arrDay(){return Math.floor((absH(S.arrH||0)+8)/24)+1}
 function restHtml(){return"<p class='mute'>Arrived "+stamp(S.arrH||0)+". Rest and explore on Day "+(arrDay()+1)+", leave 8am Day "+(arrDay()+2)+".</p>"}
 function campLogHtml(){return campLogHtmlBase()+achHtml()}
-function campLogHtmlBase(){var l=(S.camp&&S.camp.log)||[];var save="<div class='row'><button class='btn alt' onclick='exportSave()'>Download save file</button></div>";if(!l.length)return"<div class='panel'>"+save+"</div>";return"<div class='panel'><h2>Campaign so far</h2><ol class='log'>"+l.map(function(e){return"<li>Leg "+e.leg+": "+(e.stranded?"stranded in ":"arrived in ")+esc(e.to)+(e.stranded?"":" at "+esc(e.arrived))+"</li>"}).join("")+"</ol>"+save+"</div>"}
+function campLogHtmlBase(){var l=(S.camp&&S.camp.log)||[];var save="<div class='row'><button class='btn alt' onclick='exportSave()'>Download save file</button><button class='link' onclick='if(confirm(\"End your campaign? Saved progress will be cleared.\"))reset()'>End campaign</button></div>";if(!l.length)return"<div class='panel'>"+save+"</div>";return"<div class='panel'><h2>Campaign so far</h2><ol class='log'>"+l.map(function(e){return"<li>Leg "+e.leg+": "+(e.stranded?"stranded in ":"arrived in ")+esc(e.to)+(e.stranded?"":" at "+esc(e.arrived))+"</li>"}).join("")+"</ol>"+save+"</div>"}
 function nextLeg(){
  if(!S||!S.camp)return;
  var from=S.loc,dirs=((S.camp.dirs||[]).concat([unitVec(S.start,from)])).slice(-HEAD_LEGS);
@@ -902,7 +902,7 @@ function render(msg){
    if(v.hid>0)h+="<p class='hand'>"+v.hid+" more long-distance links are not shown here.</p><button class='btn alt' onclick='look()'>Look for routes (0.3 h)</button>";h+=xferHtml();
    h+="</div>"}
  }
- h+="<button class='link' onclick='if(confirm(\"End your campaign? Saved progress will be cleared.\"))reset()'>End campaign</button></section><section class='game-panel' data-game-panel='journal' aria-label='Travel journal'>"+journalPanelHtml()+"</section><section class='game-panel' data-game-panel='inventory' aria-label='Money and inventory'>"+inventoryPanelHtml()+"</section></div>";
+ h+="</section><section class='game-panel' data-game-panel='journal' aria-label='Travel journal'>"+journalPanelHtml()+"</section><section class='game-panel' data-game-panel='inventory' aria-label='Money and inventory'>"+inventoryPanelHtml()+"</section></div>";
  if(mapped)h+="</div>";
  var app=document.getElementById("app");app.classList.add("wide");app.innerHTML=h;setHdrVar();animateClock(LAST_CLOCK,clockText());LAST_CLOCK=clockText();drawMap();bindPanels();bindModes();fillFlavour();fillRouteFlavour();if(S&&(S.phase=="lastmile"||S.phase=="interim")&&!S.over)LM.attach(document.getElementById("lm"))
 }
