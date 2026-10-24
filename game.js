@@ -627,8 +627,23 @@ function journeyReady(a,b){
  })
 }
 // Start a journey once its regions are ready. camp (optional) carries the campaign state into the new leg
+// Working indicator: shown while the game waits on something slow (planning a journey, loading a save, asking the market).
+// It blocks clicks while it is up, so a second press cannot start the same work twice.
+var BUSY=0;
+function busyStart(msg){
+ BUSY++;
+ var el=document.getElementById("busy");
+ if(!el){el=document.createElement("div");el.id="busy";el.className="busy";el.setAttribute("role","status");el.setAttribute("aria-live","polite");document.body.appendChild(el)}
+ el.innerHTML="<div class='busy-card'><div class='spin'></div><p>"+esc(msg)+"</p></div>";
+ el.style.display="flex";
+}
+function busyEnd(){
+ BUSY=Math.max(0,BUSY-1);
+ if(!BUSY){var el=document.getElementById("busy");if(el)el.style.display="none"}
+}
 function startJourney(a,b,air,evn,lm,camp){
- return journeyReady(a,b).then(function(){NEXT_CAMP=camp||null;return newJourney(a,b,air,evn,lm)})
+ busyStart(camp?"Planning the next leg\u2026":"Planning your journey\u2026");
+ return journeyReady(a,b).then(function(){NEXT_CAMP=camp||null;return newJourney(a,b,air,evn,lm)}).then(function(r){busyEnd();return r},function(e){busyEnd();throw e});
 }
 // Testing: pick any start and destination, grouped by region, to reach a place without waiting for a random draw
 function testPickerHtml(){
@@ -823,7 +838,8 @@ function importSave(file){
   if(!saveIsValid(o))return importFail("That file isn't a valid Role Around the World save.");
   if(!o.setup)o.setup={air:false,evn:true,lm:{on:true,clue:"off",level:"mixed",plan:true}};
   if(!o.camp.log)o.camp.log=[];
-  journeyReady(o.start,o.goal).then(function(){S=o;save();render()},function(err){importFail("Could not load the map for that save: "+(err&&err.message||err))});
+  busyStart("Loading your save\u2026");
+  journeyReady(o.start,o.goal).then(function(){busyEnd();S=o;save();render()},function(err){busyEnd();importFail("Could not load the map for that save: "+(err&&err.message||err))});
  };
  r.onerror=function(){importFail("Couldn't read that file.")};
  r.readAsText(file);

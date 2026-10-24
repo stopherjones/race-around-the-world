@@ -83,13 +83,13 @@ function restVisit(){
  var m=mkMarket();S.camp.marketOpen=true;
  var needStall=!m.stall,todo=S.camp.pack.filter(function(x){return!x.buyer});
  if(m.finding||(!needStall&&!todo.length)){render();return}
- m.finding=true;render();
+ m.finding=true;render();busyStart("Asking around the market\u2026");
  var pre=MK_PRE&&needStall&&MK_PRE.key===mkCacheKey()&&todo.every(function(x){return MK_PRE.uids.indexOf(x.uid)>=0})?MK_PRE.promise:null;
  MK_PRE=null;
  (pre||mkAsk(mkVisitPrompt(needStall,todo)))
   .then(function(j){mkApply(j,needStall,todo)})
   .catch(function(){mkFallback(needStall,todo)})
-  .then(function(){m.finding=false;render()});
+  .then(function(){m.finding=false;busyEnd();render()});
 }
 
 function mkDemoStock(){return[
@@ -154,7 +154,7 @@ function marketHtml(){
  else h+=packSellHtml();
  if(unsold&&!busy)h+="<div class='row mt10'><button class='btn alt' onclick='restVisit()'>Find buyers for my pack</button></div>";
  h+="</div><div class='panel'><h2>Buy local goods</h2>";
- if(!m.stall)h+="<p class='mute'>"+(busy?"Asking around the market\u2026":"The market is closed today.")+"</p>";
+ if(!m.stall)h+="<p class='mute'>"+(busy?"<span class='spin inline'></span>Asking around the market\u2026":"The market is closed today.")+"</p>";
  else{
   var full=S.camp.pack.length>=MK_CAP;
   h+="<p class='mute mb8'>"+esc(m.profile&&m.profile.character?m.profile.character:"")+"</p>";
@@ -182,11 +182,11 @@ function packSellHtml(){
 
 // Things to do on a rest day: search links for the town
 function thingsHtml(){
- var q=function(s){return encodeURIComponent(s).replace(/%20/g,"+")},c=q(mkCity());
+ var q=function(s){return encodeURIComponent(s).replace(/%20/g,"+")},c=q(N[S.loc].n);
  var items=[
   ["Discover the local music scene","Acts across traditional, mainstream and experimental music.","https://www.google.com/search?q=tell+me+about+the+music+scene+in+"+c+".+Give+me+examples+of+acts+covering+traditional%2C+mainstream+and+contemporary+%2F+experimental+music"],
   ["Paint a local street scene","Painting inspiration from the town.","https://www.google.com/search?q=give+me+painting+inspiration+from+"+c+""],
-  ["Visit the local galleries and museums","What's on, and where to go.","https://www.google.com/search?q=art+galleries+and+museums+in+"+c],
+  ["Visit unusual or quirky museums","Odd collections and offbeat local exhibits.","https://www.google.com/search?q=unusual+or+quirky+museums+in+"+c],
   ["Watch a short documentary","Films about the town and its surroundings.","https://www.google.com/search?q=short+documentary+about+"+c+"&udm=7"],
   ["Learn the town's history","Key events and places from its past.","https://www.google.com/search?q=history+of+"+c]
  ];
